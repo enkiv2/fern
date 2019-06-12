@@ -60,3 +60,11 @@ More specifically:
 Fern does not supply the ability to follow, mute, or block other users. It also doesn't allow you to mute threads, edit profile information, or change the visibility of your toots. It does not perform client-side size limit checks. It does not attempt to render HTML -- it turns both links and images into raw URLs, turns `<p>` and `<br>` tags into newlines, and strips all other tags entirely.
 
 Fern was planned to support nuanced (killfile-like) blocking and filtering, but this has not yet been implemented.
+
+We have no account-switching support. The most convenient way to do this right now is keep a copy of .fern for every account and swap them out, but this means that (for instance) search is limited by account.
+
+## Flaws
+
+Sometimes, the mastodon API doesn't give us as many messages as we ask for, or truncates the range. If you don't use fern for a couple days, you're liable to miss notifications. There must be some way to get around this, since the mastodon web client seems to be able to show arbitrarily many messages.
+
+Fern isn't heavily tested on python3, and switching between python 2 and python 3 with the same configuration and cache can cause problems. Specifically, it can corrupt your cache, because of some changes to how strings work that are too hairy for me to fully understand.
