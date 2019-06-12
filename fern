@@ -17,14 +17,22 @@ except:
 
 import curses, time, os, copy
 
-home=""
 try:
-	from pathlib import Path
-	home=str(Path.home())
+    from xdg import (XDG_CACHE_HOME, XDG_CONFIG_DIRS, XDG_CONFIG_HOME,
+                     XDG_DATA_DIRS, XDG_DATA_HOME, XDG_RUNTIME_DIR)
+    from os.path import join
+    ferndir = os.path.join(XDG_CONFIG_HOME, "fern")
 except:
-	from os.path import expanduser
-	home=expanduser("~")
-ferndir=home+"/.fern/"
+    home = ""
+    try:
+        from pathlib import Path
+
+        home = str(Path.home())
+    except:
+        from os.path import expanduser
+
+        home = expanduser("~")
+    ferndir = home + "/.fern/"
 
 from datetime import datetime
 import traceback
