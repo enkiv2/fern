@@ -251,6 +251,8 @@ def drawPanels(uid, rows, cols, highlighted=0):
 	truncID=trunc(uid, leftPanelCols-3)
 	scr.addstr("".join(["+[", truncID, "]", "-"*(leftPanelCols-(3+len(truncID))), "+", "-"*(rightPanelCols-1)]))
 	for i in range(0, int((rows-3)/4)):
+		bottom="/"
+		if i<10: bottom=str(i)
 		if highlighted==i:
 			scr.addstr("".join(["#", " "*(leftPanelCols-1), " "*(rightPanelCols)]), hlColor)
 			scr.addstr("".join(["#", " "*(leftPanelCols-1), " "*(rightPanelCols)]), hlColor)
@@ -260,7 +262,7 @@ def drawPanels(uid, rows, cols, highlighted=0):
 			scr.addstr("".join(["|", " "*(leftPanelCols-1), "|", " "*(rightPanelCols-1)]), color)
 			scr.addstr("".join(["|", " "*(leftPanelCols-1), "|", " "*(rightPanelCols-1)]), color)
 			scr.addstr("".join(["|", " "*(leftPanelCols-1), "|", " "*(rightPanelCols-1)]), color)
-			scr.addstr("".join(["+", "_"*(leftPanelCols-1), "/", " "*(rightPanelCols-1)]), color)
+			scr.addstr("".join(["+", "_"*(leftPanelCols-1), bottom, " "*(rightPanelCols-1)]), color)
 	if (rows-3)%4>0:
 		for i in range(4*int((rows-3)/4), rows-3):
 			scr.addstr(" "*cols)
