@@ -160,11 +160,11 @@ def setupColor():
 	curses.init_pair(*([seennum]+seencolor))	 # Already-seen messages
 
 def drawLogo(xoffset=0, yoffset=0):
-    i=0
-    for line in logo.split("\n"):
-       scr.addstr(int(i+yoffset), int(xoffset), line, curses.color_pair(menunum))
-       i+=1
-    scr.refresh()
+		i=0
+		for line in logo.split("\n"):
+			 scr.addstr(int(i+yoffset), int(xoffset), line, curses.color_pair(menunum))
+			 i+=1
+		scr.refresh()
 
 def setupCurses():
 	global scr, ROWS, COLS
@@ -391,7 +391,7 @@ commandKeys={
 	"o":"toggle_cw",
 	"j":"set_timeline",
 	"/":"search",
-  ":":"cmd"}
+	":":"cmd"}
 def execCommand(cmd):
 	global hlIdx, tlIdx, tl, currentTimeline, isCWOpen, seen_toots, tootbase, tb_dirty
 	if cmd=="quit":
@@ -585,7 +585,7 @@ def getTimeline(which=None, **kw_args):
 				next
 			statusMsg("Getting your "+which+" timeline, toot "+tid+" ("+str(i)+"/"+str(limit)+")", False)
 			if not tid in tootbase:
-                                tb_dirty[int(tid[0])]=True
+				tb_dirty[int(tid[0])]=True
 				acct=toot["account"]
 				if "id" in acct:
 					acctid=acct["id"]
@@ -627,14 +627,14 @@ def saveBase():
 	global tootbase, acctbase, seen_toots, tb_dirty
 	if True in tb_dirty:
 		for i in range(0, 10):
-		    if tb_dirty[i]:
-			    tmp={}
-			    for tid in tootbase.keys():
-				if int(str(tid)[0])==i:
-					tmp[tid]=tootbase[tid]
-			    with open(ferndir+"tootbase"+str(i)+".pickle", "wb") as f:
-				pickle.dump(tmp, f)
-				tb_dirty[i]=False
+				if tb_dirty[i]:
+					tmp={}
+					for tid in tootbase.keys():
+						if int(str(tid)[0])==i:
+							tmp[tid]=tootbase[tid]
+							with open(ferndir+"tootbase"+str(i)+".pickle", "wb") as f:
+								pickle.dump(tmp, f)
+								tb_dirty[i]=False
 		with open(ferndir+"acctbase.pickle", "wb") as f:
 			pickle.dump(acctbase, f)
 	with open(ferndir+"seenbase.pickle", "wb") as f:
