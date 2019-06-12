@@ -162,8 +162,8 @@ def setupColor():
 def drawLogo(xoffset=0, yoffset=0):
 		i=0
 		for line in logo.split("\n"):
-			 scr.addstr(int(i+yoffset), int(xoffset), line, curses.color_pair(menunum))
-			 i+=1
+			scr.addstr(int(i+yoffset), int(xoffset), line, curses.color_pair(menunum))
+			i+=1
 		scr.refresh()
 
 def setupCurses():
