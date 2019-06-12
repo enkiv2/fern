@@ -21,6 +21,8 @@
 
 Fern depends upon [Mastodon.py](https://github.com/halcy/Mastodon.py), and is tested on python 2.7 (though it ought to work on python 3 as well).
 
+It was forked from [my misc repo](http://github.com/enkiv2/misc), so if you want to see the history of older commits, view it [here](https://github.com/enkiv2/misc/commits/5ac7ed618a10622f065c7e08d6e422ca478395d7/fern).
+
 ## Installation
 
 ```
