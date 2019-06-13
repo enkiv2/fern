@@ -56,7 +56,7 @@ More specifically:
 * skipping to the next or previous unread message is a single-keystroke operation, while navigating to the next or previous message regardless of read status requires also pressing shift
 * CWs' openness is toggled globally, but the content of CW'd messages is not visible in the left-hand pane -- so, it's faster to read long threads where every item is CW'd
 * messages are cached locally as soon as they are fetched or posted, and search runs against the local cache
-* fetching new messages requires the user to perform the fetch operation (F) or open a thread (t)
+* fetching new messages requires the user to perform the fetch operation (`F`) or open a thread (`t`)
 * there is only one timeline pane (the left-hand pane), and new content is placed at the top of the timeline (even in events like thread expansion, where the entire thread is prepended to the top of the timeline)
 
 ## About the local cache
