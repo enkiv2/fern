@@ -675,7 +675,6 @@ def getTimeline(which=None, **kw_args):
 				else:
 					tmp={"account":acct, "id":tid}
 				tmp["id"]=tid
-				#for item in ["in_reply_to_id", "content", "created_at", "spoiler_text", "reblogged", "favourited", "sensitive", "muted", "media_attachments", "visibility"]:
 				for item in toot:
 					statusMsg("Getting your "+which+" timeline, toot "+tid+" ["+item+"] ("+str(i)+"/"+str(limit)+")", False)
 					if item in toot:
