@@ -59,6 +59,14 @@ More specifically:
 * fetching new messages requires the user to perform the fetch operation (F) or open a thread (t)
 * there is only one timeline pane (the left-hand pane), and new content is placed at the top of the timeline (even in events like thread expansion, where the entire thread is prepended to the top of the timeline)
 
+## About the local cache
+
+Fern caches all toots immediately after fetching them, and checks this local cache first for display. This aggressive caching is necessary because Mastodon.py lazily fetches items from the ActivityPub server as they're needed for view, which can be quite slow -- too slow for search, and sometimes too slow for rapid reading of the timeline.
+
+This local cache is represented as a hash table keyed by message ID, and while it's a single table in memory, it's stored in 10 chunks (based on the last digit of the ID). This segmentation makes saving quicker in cases where only a few messages have been fetched.
+
+Messages are fetched and added to the local cache if the user requests a fetch (`F`), expands a thread (`t`), requests a particular message by ID (`:open_tid`), or imports history (`:import_history`). A save occurs after each manual fetch (once per timeline) or after expanding each thread, and it also occurs upon exit.
+
 ## Missing features
 
 Fern does not supply the ability to follow, mute, or block other users. It also doesn't allow you to mute threads, edit profile information, or change the visibility of your toots. It does not perform client-side size limit checks. It does not attempt to render HTML -- it turns both links and images into raw URLs, turns `<p>` and `<br>` tags into newlines, and strips all other tags entirely.
