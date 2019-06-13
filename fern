@@ -6,14 +6,12 @@ import sys
 try:
 	reload(sys)
 	sys.setdefaultencoding('utf8')
-except:
-	pass
+except: pass
 
 try:
 	import cPickle
 	pickle=cPickle
-except:
-	import pickle
+except: import pickle
 
 import curses, time, os, copy
 
@@ -41,8 +39,7 @@ import codecs
 UTF8Writer = codecs.getwriter('utf8')
 sys.stdout = UTF8Writer(sys.stdout)
 
-try:
-	from html import unescape
+try: from html import unescape
 except:
 	try:
 		from HTMLParser import HTMLParser
@@ -102,8 +99,7 @@ def statusMsg(msg, wait=True):
 	query.overlay(scr)
 	scr.refresh()
 	query.refresh()
-	if wait:
-		query.getch()
+	if wait: query.getch()
 	del query
 
 def queryForInput(msg, hideEcho=False):
@@ -117,39 +113,33 @@ def queryForInput(msg, hideEcho=False):
 	query.overlay(scr)
 	scr.refresh()
 	query.refresh()
-	if not hideEcho:
-		curses.echo()
+	if not hideEcho: curses.echo()
 	curses.curs_set(1)
 	addy=query.getstr(2, 1, 500)
 	curses.curs_set(0)
 	curses.noecho()
 	del query
 	scr.refresh()
-	try:
-		addy=addy.decode(code)
-	except:
-		pass
+	try: addy=addy.decode(code)
+	except: pass
 	return addy.replace("\\n", "\n")
 
 def registerApplication(instanceURL, email, password):
 	clientCredFname=ferndir+"clientcred.txt"
 	userCredFname=ferndir+"usercred.txt"
 	
-	if not (os.path.exists(clientCredFname)):
-		Mastodon.create_app("fern", to_file=clientCredFname, api_base_url=instanceURL)
+	if not (os.path.exists(clientCredFname)): Mastodon.create_app("fern", to_file=clientCredFname, api_base_url=instanceURL)
 	
 	mastodon = Mastodon(client_id=clientCredFname, api_base_url=instanceURL)
 	mastodon.log_in(email, password, to_file=userCredFname)
-	with open(ferndir+"instance_url.txt", "w") as f:
-		f.write(instanceURL)
+	with open(ferndir+"instance_url.txt", "w") as f: f.write(instanceURL)
 
 def registerApplicationHelper():	
 	statusMsg("You need to set up Fern to talk to your instance. Press any key to continue.")
 	instanceURL=queryForInput("What is the URL of your instance?")
 	email=queryForInput("What is your email?")
 	password=queryForInput("What is your password?", True)
-	try:
-		registerApplication(instanceURL, email, password)
+	try: registerApplication(instanceURL, email, password)
 	except Exception as e:
 		statusMsg("Something went wrong: "+str(e))
 		raise e
@@ -191,23 +181,17 @@ def teardownCurses():
 ######################### TEXT FORMATTING & PROCESSING HELPERS
 
 def trunc(string, length, affix="...", breakOnWord=False):
-	if not string:
-		return ""
-	if len(string)<length:
-		return string
-	if length==0:
-		return ""
-	if len(affix)>length:
-		return string[:length]
+	if not string: return ""
+	if len(string)<length: return string
+	if length==0: return ""
+	if len(affix)>length: return string[:length]
 	if breakOnWord:
 		words=string.split()
 		for i in range(len(words), 1, -1):
 			x=" ".join(words[:i]+[affix])
-			if len(x)<length:
-				return x
+			if len(x)<length: return x
 		return trunc(string, length, affix)
-	else:
-		return string[:length-len(affix)]+affix
+	else: return string[:length-len(affix)]+affix
 
 def truncWrap(string, length, affix="\n", breakOnWord=True):
 	ret=[]
@@ -241,8 +225,7 @@ def processContents(string):
 	return string
 
 def fillInDomain(name):
-	if name.find("@")<0:
-		return name+"@"+domain
+	if name.find("@")<0: return name+"@"+domain
 	return name
 
 ######################## CODE FOR DRAWING THE TUI
@@ -258,29 +241,22 @@ def drawPanels(uid, rows, cols, highlighted=0):
 		bottom="/"
 		if i<10: bottom=str(i)
 		if highlighted==i:
-			scr.addstr("".join(["#", " "*(leftPanelCols-1), " "*(rightPanelCols)]), hlColor)
-			scr.addstr("".join(["#", " "*(leftPanelCols-1), " "*(rightPanelCols)]), hlColor)
-			scr.addstr("".join(["#", " "*(leftPanelCols-1), " "*(rightPanelCols)]), hlColor)
+			for j in range(0,3): scr.addstr("".join(["#", " "*(leftPanelCols-1), " "*(rightPanelCols)]), hlColor)
 			scr.addstr("".join(["#", "="*(leftPanelCols-1), " "*(rightPanelCols)]), hlColor)
 		else:
-			scr.addstr("".join(["|", " "*(leftPanelCols-1), "|", " "*(rightPanelCols-1)]), color)
-			scr.addstr("".join(["|", " "*(leftPanelCols-1), "|", " "*(rightPanelCols-1)]), color)
-			scr.addstr("".join(["|", " "*(leftPanelCols-1), "|", " "*(rightPanelCols-1)]), color)
+			for j in range(0,3): scr.addstr("".join(["|", " "*(leftPanelCols-1), "|", " "*(rightPanelCols-1)]), color)
 			scr.addstr("".join(["+", "_"*(leftPanelCols-1), bottom, " "*(rightPanelCols-1)]), color)
 	if (rows-3)%4>0:
-		for i in range(4*int((rows-3)/4), rows-3):
-			scr.addstr(" "*cols)
+		for i in range(4*int((rows-3)/4), rows-3): scr.addstr(" "*cols)
 	clopen="[(o)pen_CW]"
-	if isCWOpen:
-		clopen="[cl(o)se_CW]"
+	if isCWOpen: clopen="[cl(o)se_CW]"
 	scr.addstr(centerPad("[(p)rev/(n)ext_unread] [(P)rev/(N)ext_message] [(j)ump to timeline] [(T)op] [(c)ompose] [(q)uit] [(/)_find]", cols-1).replace("_", " "), curses.color_pair(menunum))
 	scr.addstr(centerPad("[(b)oost] [(f)av] [mark_(u)nread] "+clopen+" [(t)hread_view] [(F)etch_new] [(:)_command]", cols-1).replace("_", " "), curses.color_pair(menunum))
 	if COLS-(leftPanelCols+(COLS-leftPanelCols/2)) > 43: drawLogo(leftPanelCols+int((COLS-leftPanelCols)/2), int(ROWS/2))
 
 def drawMsgPanel(idx, user, cw, msg, date, seen=False):
 	panelstart=(idx*4)+1
-	if panelstart+4 > ROWS-2:
-		return
+	if panelstart+4 > ROWS-2: return
 	panelwidth=int((COLS/8.0)*3)-1
 	mcol=curses.color_pair(menunum)
 	tcol=curses.color_pair(textnum)
@@ -288,10 +264,8 @@ def drawMsgPanel(idx, user, cw, msg, date, seen=False):
 		mcol=curses.color_pair(seennum)
 		tcol=curses.color_pair(seennum)
 	scr.addstr(panelstart, 1, trunc(user, panelwidth), mcol)
-	if not cw:
-		scr.addstr(panelstart+1, 2, trunc(firstNonBlankLine(msg), panelwidth-2), tcol)
-	else:
-		scr.addstr(panelstart+1, 2, trunc(cw, panelwidth-2), curses.color_pair(cwnum))
+	if not cw: scr.addstr(panelstart+1, 2, trunc(firstNonBlankLine(msg), panelwidth-2), tcol)
+	else: scr.addstr(panelstart+1, 2, trunc(cw, panelwidth-2), curses.color_pair(cwnum))
 	scr.addstr(panelstart+2, 2, trunc(date, panelwidth-2), mcol)
 
 def drawSelectedMsg(user, displayname, cw, msg, cwopen=False):
@@ -303,21 +277,18 @@ def drawSelectedMsg(user, displayname, cw, msg, cwopen=False):
 	if not cw:
 		i=3
 		for line in msg:
-			if i>ROWS:
-				return
+			if i>ROWS: return
 			scr.addstr(i, panelstart, line, curses.color_pair(textnum))
 			i+=1
 	else:
 		i=3
 		for line in truncWrap("CW: "+cw, panelwidth):
-			if i>ROWS:
-				return
+			if i>ROWS: return
 			scr.addstr(i, panelstart, line, curses.color_pair(cwnum))
 			i+=1
 		if cwopen:
 			for line in msg:
-				if i>ROWS:
-					return
+				if i>ROWS: return
 				scr.addstr(i, panelstart, line, curses.color_pair(textnum))
 				i+=1
 
@@ -327,25 +298,18 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 	drawPanels(fillInDomain(mastodon.account_verify_credentials()["acct"]), ROWS, COLS, selectedIdx)
 	i=0
 	for toot in toots:
-		if(i>(ROWS-3)/4):
-			continue
+		if(i>(ROWS-3)/4): continue
 		if "reblog" in toot and toot["reblog"]:
-			if type(toot["reblog"])==type(toot):
-				toot=toot["reblog"]
-		if "muted" in toot:
-			next
-		if not "id" in toot:
-			next
-		if not toot["id"] in tootbase:
-			tootbase[toot["id"]]=copy.deepcopy(toot)
+			if type(toot["reblog"])==type(toot): toot=toot["reblog"]
+		if "muted" in toot: next
+		if not "id" in toot: next
+		if not toot["id"] in tootbase: tootbase[toot["id"]]=copy.deepcopy(toot)
 		seen=(toot["id"] in seen_toots)
-		if skipSeen and seen:
-			next
+		if skipSeen and seen: next
 		acct=toot["account"]
 		username=fillInDomain(acct["acct"])
 		cw=toot["spoiler_text"]
-		if not cw:
-			cw=None
+		if not cw: cw=None
 		content=processContents(toot["content"])
 		drawMsgPanel(i, username, cw, content, str(toot["created_at"]), seen)
 		if i==selectedIdx:
@@ -519,17 +483,14 @@ def execCommand(cmd):
 				search=matcher.search
 			except:
 				def search(string):
-					if string.find(msg):
-						return True
-					else:
-						return None
+					if string.find(msg): return True
+					else:                return None
 			toots=[]
 			for tid in tids:
 				if "spoiler_text" in tootbase[tid] and tootbase[tid]["spoiler_text"]:
 					if search(tootbase[tid]["spoiler_text"])!=None:
 						toots.append(tootbase[tid])
-				if search(tootbase[tid]["content"])!=None:
-					toots.append(tootbase[tid])
+				if search(tootbase[tid]["content"])!=None: toots.append(tootbase[tid])
 			tl=toots
 			tlIdx=0
 			hlIdx=0
@@ -542,8 +503,7 @@ def execCommand(cmd):
 			tl=[tootbase[tid]]+tl
 			tlIdx=0
 			hlIdx=0
-		except Exception as e:
-			statusMsg(str(e))
+		except Exception as e: statusMsg(str(e))
 	elif cmd=="import_history":
 		drawPanelContents(tl[tlIdx:], hlIdx)
 		statusMsg("Getting statuses...", False)
@@ -628,10 +588,8 @@ def execCommand(cmd):
 ######################### MASTODON & CACHE HANDLING
 def getTimeline(which=None, **kw_args):
 	global tootbase, acctbase, currentTimeline, tb_dirty
-	if not which:
-		which=currentTimeline
-	if which=="all":
-		which="notifications home local public"
+	if not which: which=currentTimeline
+	if which=="all": which="notifications home local public"
 	if which.find(" ")>=0:
 		tl=[]
 		for item in which.split():
@@ -645,18 +603,15 @@ def getTimeline(which=None, **kw_args):
 		for note in notes:
 			if note["type"]=="mention":
 				tl2.append(note["status"])
-	else:
-		tl2=mastodon.timeline(timeline=which, **kw_args)
+	else: tl2=mastodon.timeline(timeline=which, **kw_args)
 	i=0
 	for toot in tl2:
 		if toot["reblog"]:
 			toot=toot["reblog"]
 		try:
-			if not "id" in toot:
-				next
+			if not "id" in toot: next
 			tid=toot["id"]
-			if tid in seen_toots:
-				next
+			if tid in seen_toots: next
 			statusMsg("Getting your "+which+" timeline, toot "+tid+" ("+str(i)+"/"+str(limit)+")", False)
 			if not tid in tootbase:
 				tb_dirty[int(tid[-2:])]=True
@@ -672,13 +627,11 @@ def getTimeline(which=None, **kw_args):
 						acctbase[acctid]=tmp
 						acct=tmp
 					tmp={"account":acctbase[acctid], "id":tid}
-				else:
-					tmp={"account":acct, "id":tid}
+				else: tmp={"account":acct, "id":tid}
 				tmp["id"]=tid
 				for item in toot:
 					statusMsg("Getting your "+which+" timeline, toot "+tid+" ["+item+"] ("+str(i)+"/"+str(limit)+")", False)
-					if item in toot:
-						tmp[item]=toot[item]
+					if item in toot: tmp[item]=toot[item]
 				tootbase[tid]=tmp
 			tl.append(tootbase[tid])
 			i+=1
@@ -690,25 +643,21 @@ def getTimeline(which=None, **kw_args):
 				try:
 					tl.append(copy.copy(toot))
 					tl[-1]["id"]=toot["id"]
-				except:
-					tl.append(toot)
+				except: tl.append(toot)
 	saveBase()
 	return tl
 
 def saveBase():
 	statusMsg("Saving tootbase...", False)
 	global tootbase, acctbase, seen_toots, tb_dirty
-	with open(ferndir+"acctbase.pickle", "wb") as f:
-		pickle.dump(acctbase, f)
-	with open(ferndir+"seenbase.pickle", "wb") as f:
-		pickle.dump(seen_toots, f)
+	with open(ferndir+"acctbase.pickle", "wb") as f: pickle.dump(acctbase, f)
+	with open(ferndir+"seenbase.pickle", "wb") as f: pickle.dump(seen_toots, f)
 	if True in tb_dirty:
 		for i in range(0, 100):
 				if tb_dirty[i] or not os.path.exists(ferndir+"tootbase"+str(i)+".pickle"):
 					tmp={}
 					for tid in tootbase.keys():
-						if int(str(tid)[-2:])==i:
-							tmp[tid]=tootbase[tid]
+						if int(str(tid)[-2:])==i: tmp[tid]=tootbase[tid]
 					with open(ferndir+"tootbase"+str(i)+".pickle", "wb") as f:
 						pickle.dump(tmp, f)
 						tb_dirty[i]=False
@@ -717,8 +666,7 @@ def loadBase():
 	global tb_dirty
 	statusMsg("Loading tootbase...", False)
 	global tootbase, acctbase, seen_toots
-	with open(ferndir+"acctbase.pickle", "rb") as f:
-		acctbase=pickle.load(f)
+	with open(ferndir+"acctbase.pickle", "rb") as f: acctbase=pickle.load(f)
 	with open(ferndir+"seenbase.pickle", "rb") as f:
 		seen_toots=pickle.load(f)
 		try:
@@ -726,22 +674,19 @@ def loadBase():
 			for item in seen_toots:
 				res.append(item.decode(code))
 			seen_toots=res
-		except:
-			pass
+		except: pass
 	if os.path.exists(ferndir+"tootbase0.pickle"):
 		for i in range(0, 100):
 			with open(ferndir+"tootbase"+str(i)+".pickle", "rb") as f:
 				tmp=pickle.load(f)
-				for tid in tmp.keys():
-					tootbase[tid]=tmp[tid]
+				for tid in tmp.keys(): tootbase[tid]=tmp[tid]
 				tb_dirty[i]=False
 	else:
 		with open(ferndir+"tootbase.pickle", "rb") as f:
 			tootbase=pickle.load(f)
 			tb_dirty=[True]*10
 			for i in range(0, 100):
-				with open(ferndir+"tootbase"+str(i)+".pickle", "wb") as f:
-					pickle.dump({}, f)
+				with open(ferndir+"tootbase"+str(i)+".pickle", "wb") as f: pickle.dump({}, f)
 			saveBase()
 
 ######################## MAIN
@@ -754,14 +699,10 @@ def mainloop():
 		return
 		
 	key=curses.keyname(key)
-	try:
-		key=key.decode(code)
-	except:
-		pass
-	if key in commandKeys.keys():
-		execCommand(commandKeys[key])
-	else:
-		statusMsg("Key not handled: "+key)
+	try: key=key.decode(code)
+	except: pass
+	if key in commandKeys.keys(): execCommand(commandKeys[key])
+	else: statusMsg("Key not handled: "+key)
 
 def main():
 	global mastodon, domain, hlIdx, tlIdx, tl, acctbase, tootbase, seen_toots, currentTimeline, isCWOpen
@@ -777,22 +718,17 @@ def main():
 			with open(ferndir+"instance_url.txt", 'r') as f:
 				instance_url=f.readline().strip()
 			mastodon=Mastodon(client_id=ferndir+"clientcred.txt", access_token=ferndir+"usercred.txt", api_base_url=instance_url, ratelimit_method="pace")
-			try:
-				loadBase()
-			except:
-				saveBase()
+			try: loadBase()
+			except: saveBase()
 	except Exception as e:
 		statusMsg("Something happened: "+str(e))
 		registerApplicationHelper()
 		main()
 	domain=re.sub("^http.?://", "", re.sub("/$", "", mastodon.instance()["uri"]))
-	if len(seen_toots)>0:
-		tl=getTimeline("all", since_id=seen_toots[-1])
-	else:
-		tl=getTimeline("all")
+	if len(seen_toots)>0: tl=getTimeline("all", since_id=seen_toots[-1])
+	else: tl=getTimeline("all")
 	while True:
-		try:
-			mainloop()
+		try: mainloop()
 		except Exception as e:
 			statusMsg("Something happened: "+str(e))
 			teardownCurses()
