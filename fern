@@ -437,7 +437,7 @@ def execCommand(cmd):
 				posted=mastodon.status_post(msg, spoiler_text=cw)
 				seen_toots.append(posted["id"])
 				tootbase[posted["id"]]=posted
-				tb_dirty[int(str(posted["id"])[0])]=True
+				tb_dirty[int(str(posted["id"])[-1])]=True
 			except Exception as e:
 				statusMsg("Error in posting your "+str(length)+"-character message: "+str(e))
 	elif cmd=="reply":
@@ -458,7 +458,7 @@ def execCommand(cmd):
 				posted=mastodon.status_post(msg, in_reply_to_id=tid, spoiler_text=cw)
 				seen_toots.append(posted["id"])
 				tootbase[posted["id"]]=posted
-				tb_dirty[int(str(posted["id"])[0])]=True
+				tb_dirty[int(str(posted["id"])[-1])]=True
 			except Exception as e:
 				statusMsg("Error in posting your "+str(len(msg))+"-character reply: "+str(e))
 	elif cmd=="boost":
@@ -488,6 +488,7 @@ def execCommand(cmd):
 			tid=tootbase[tid]["in_reply_to_id"]
 			if not tid in tootbase:
 				tootbase[tid]=copy.deepcopy(mastodon.status(tid))
+				tb_dirty[int(tid[-1])]=True
 		toots=[tootbase[tid]]
 		for item in mastodon.status_context(tid)["descendants"]:
 			statusMsg("Expanding thread... (ID "+str(item["id"])+")", False)
@@ -532,6 +533,17 @@ def execCommand(cmd):
 			tl=toots
 			tlIdx=0
 			hlIdx=0
+	elif cmd.find("open_tid ")==0:
+		try:
+			tid=cmd.split()[1].strip()
+			if not tid in tootbase:
+				tootbase[tid]=copy.deepcopy(mastodon.status(tid))
+				tb_dirty[int(tid[-1])]=True
+			tl=[tootbase[tid]]+tl
+			tlIdx=0
+			hlIdx=0
+		except Exception as e:
+			statusMsg(str(e))
 
 	if hlIdx+tlIdx<0:
 		hlIdx=0
@@ -589,7 +601,7 @@ def getTimeline(which=None, **kw_args):
 				next
 			statusMsg("Getting your "+which+" timeline, toot "+tid+" ("+str(i)+"/"+str(limit)+")", False)
 			if not tid in tootbase:
-				tb_dirty[int(tid[0])]=True
+				tb_dirty[int(tid[-1])]=True
 				acct=toot["account"]
 				if "id" in acct:
 					acctid=acct["id"]
@@ -638,7 +650,7 @@ def saveBase():
 				if tb_dirty[i] or not os.path.exists(ferndir+"tootbase"+str(i)+".pickle"):
 					tmp={}
 					for tid in tootbase.keys():
-						if int(str(tid)[0])==i:
+						if int(str(tid)[-1])==i:
 							tmp[tid]=tootbase[tid]
 					with open(ferndir+"tootbase"+str(i)+".pickle", "wb") as f:
 						pickle.dump(tmp, f)
