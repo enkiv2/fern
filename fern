@@ -76,7 +76,7 @@ ROWS=25
 COLS=80
 
 seen_toots=[]
-tb_dirty=[False]*10
+tb_dirty=[False]*100
 tootbase={}
 acctbase={}
 
@@ -437,7 +437,7 @@ def execCommand(cmd):
 				posted=mastodon.status_post(msg, spoiler_text=cw)
 				seen_toots.append(posted["id"])
 				tootbase[posted["id"]]=posted
-				tb_dirty[int(str(posted["id"])[-1])]=True
+				tb_dirty[int(str(posted["id"])[-2:])]=True
 			except Exception as e:
 				statusMsg("Error in posting your "+str(length)+"-character message: "+str(e))
 	elif cmd=="reply":
@@ -458,7 +458,7 @@ def execCommand(cmd):
 				posted=mastodon.status_post(msg, in_reply_to_id=tid, spoiler_text=cw)
 				seen_toots.append(posted["id"])
 				tootbase[posted["id"]]=posted
-				tb_dirty[int(str(posted["id"])[-1])]=True
+				tb_dirty[int(str(posted["id"])[-2:])]=True
 			except Exception as e:
 				statusMsg("Error in posting your "+str(len(msg))+"-character reply: "+str(e))
 	elif cmd=="boost":
@@ -488,7 +488,7 @@ def execCommand(cmd):
 			tid=tootbase[tid]["in_reply_to_id"]
 			if not tid in tootbase:
 				tootbase[tid]=copy.deepcopy(mastodon.status(tid))
-				tb_dirty[int(tid[-1])]=True
+				tb_dirty[int(tid[-2:])]=True
 		toots=[tootbase[tid]]
 		for item in mastodon.status_context(tid)["descendants"]:
 			statusMsg("Expanding thread... (ID "+str(item["id"])+")", False)
@@ -538,7 +538,7 @@ def execCommand(cmd):
 			tid=cmd.split()[1].strip()
 			if not tid in tootbase:
 				tootbase[tid]=copy.deepcopy(mastodon.status(tid))
-				tb_dirty[int(tid[-1])]=True
+				tb_dirty[int(tid[-2:])]=True
 			tl=[tootbase[tid]]+tl
 			tlIdx=0
 			hlIdx=0
@@ -554,7 +554,7 @@ def execCommand(cmd):
 				if not tid in tootbase:
 					statusMsg("Fetching "+tid, False)
 					tootbase[tid]=copy.deepcopy(status)
-					tb_dirty[int(tid[-1])]=True
+					tb_dirty[int(tid[-2:])]=True
 				execCommand("open_tid "+tid)
 				execCommand("expand_thread")
 			page+=1
@@ -569,7 +569,7 @@ def execCommand(cmd):
 				if not tid in tootbase:
 					statusMsg("Fetching "+tid, False)
 					tootbase[tid]=copy.deepcopy(status)
-					tb_dirty[int(tid[-1])]=True
+					tb_dirty[int(tid[-2:])]=True
 				execCommand("open_tid "+tid)
 				execCommand("expand_thread")
 			page+=1
@@ -584,7 +584,7 @@ def execCommand(cmd):
 				if not tid in tootbase:
 					statusMsg("Fetching "+tid, False)
 					tootbase[tid]=copy.deepcopy(status["status"])
-					tb_dirty[int(tid[-1])]=True
+					tb_dirty[int(tid[-2:])]=True
 				execCommand("open_tid "+tid)
 				execCommand("expand_thread")
 			page+=1
@@ -647,7 +647,7 @@ def getTimeline(which=None, **kw_args):
 				next
 			statusMsg("Getting your "+which+" timeline, toot "+tid+" ("+str(i)+"/"+str(limit)+")", False)
 			if not tid in tootbase:
-				tb_dirty[int(tid[-1])]=True
+				tb_dirty[int(tid[-2:])]=True
 				acct=toot["account"]
 				if "id" in acct:
 					acctid=acct["id"]
@@ -692,11 +692,11 @@ def saveBase():
 	with open(ferndir+"seenbase.pickle", "wb") as f:
 		pickle.dump(seen_toots, f)
 	if True in tb_dirty:
-		for i in range(0, 10):
+		for i in range(0, 100):
 				if tb_dirty[i] or not os.path.exists(ferndir+"tootbase"+str(i)+".pickle"):
 					tmp={}
 					for tid in tootbase.keys():
-						if int(str(tid)[-1])==i:
+						if int(str(tid)[-2:])==i:
 							tmp[tid]=tootbase[tid]
 					with open(ferndir+"tootbase"+str(i)+".pickle", "wb") as f:
 						pickle.dump(tmp, f)
@@ -718,7 +718,7 @@ def loadBase():
 		except:
 			pass
 	if os.path.exists(ferndir+"tootbase0.pickle"):
-		for i in range(0, 10):
+		for i in range(0, 100):
 			with open(ferndir+"tootbase"+str(i)+".pickle", "rb") as f:
 				tmp=pickle.load(f)
 				for tid in tmp.keys():
@@ -728,7 +728,7 @@ def loadBase():
 		with open(ferndir+"tootbase.pickle", "rb") as f:
 			tootbase=pickle.load(f)
 			tb_dirty=[True]*10
-			for i in range(0, 10):
+			for i in range(0, 100):
 				with open(ferndir+"tootbase"+str(i)+".pickle", "wb") as f:
 					pickle.dump({}, f)
 			saveBase()
