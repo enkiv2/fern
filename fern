@@ -737,6 +737,7 @@ def main():
 	else: tl=getTimeline("all")
 	while True:
 		try: mainloop()
+		except SystemExit as e: break
 		except Exception as e:
 			statusMsg("Something happened: "+str(e))
 			teardownCurses()
