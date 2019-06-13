@@ -30,6 +30,10 @@ It was forked from [my misc repo](http://github.com/enkiv2/misc), so if you want
 	sudo make install
 ```
 
+When you start fern for the first time, it will prompt you for your instance URL, email, and password. (To reset this, delete ~/.fern)
+
+If you would like to import your existing history of posts, mentions, and favorites, type `:import_history`. This may take a long time.
+
 ## Philosophy
 
 Fern comes out of some discussions on the fediverse about how user interface design influences behavior & how certain kinds of norms developed around reading whole threads in usenet because of the design of news clients. The UI of fern is an experiment in trying to encourage users to read entire threads, read their entire timeline, and treat the fediverse more like a medium for serious discussion (i.e., to de-twitterize the fediverse's culture with regard to sealioning).
@@ -68,3 +72,17 @@ We have no account-switching support. The most convenient way to do this right n
 Sometimes, the mastodon API doesn't give us as many messages as we ask for, or truncates the range. If you don't use fern for a couple days, you're liable to miss notifications. There must be some way to get around this, since the mastodon web client seems to be able to show arbitrarily many messages.
 
 Fern isn't heavily tested on python3, and switching between python 2 and python 3 with the same configuration and cache can cause problems. Specifically, it can corrupt your cache, because of some changes to how strings work that are too hairy for me to fully understand.
+
+While fern now works on 80x24 terminals, it will probably still break if your terminal is much smaller. (If this happens, you'll get an error like "Something happened: ERR in addstr()".)
+
+## What do users say?
+
+Drew DeVault [says](https://cmpwn.com/@sir/102261747305331627) that I'm a "moron" for supporting python2, and that my code is bad.
+
+Feoh [says](https://cybre.space/@feoh/102259270040620552) "VERY cool"
+
+IceWolf [says](https://meow.social/@IceWolf/102264248205395584) "700 lines of code? For an entire Mastodon client? Nice! (:"
+
+tedu [says](https://lobste.rs/s/pmh5hg/fern_curses_based_mastodon_client#c_pmdwvz) "Good luck! (Earnestly.)"
+
+
