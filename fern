@@ -548,7 +548,6 @@ def execCommand(cmd):
 		drawPanelContents(tl[tlIdx:], hlIdx)
 		statusMsg("Getting statuses...", False)
 		statuses=mastodon.account_statuses(mastodon.account_verify_credentials()["id"])
-		statuses=None
 		page=1
 		while statuses != None:
 			for status in statuses:
