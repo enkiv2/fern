@@ -531,7 +531,8 @@ def execCommand(cmd):
 			drawPanelContents(tl[tlIdx:], hlIdx)
 			page+=1
 			statusMsg("Getting statuses... page "+str(page), False)
-			statuses=mastodon.fetch_next(statuses)
+			try: statuses=mastodon.fetch_next(statuses)
+			except: statuses=None
 		drawPanelContents(tl[tlIdx:], hlIdx)
 		statusMsg("Getting favorites...", False)
 		favourites=mastodon.favourites()
@@ -550,7 +551,8 @@ def execCommand(cmd):
 			drawPanelContents(tl[tlIdx:], hlIdx)
 			page+=1
 			statusMsg("Getting favourites... page "+str(page), False)
-			favourites=mastodon.fetch_next(favourites)
+			try: favourites=mastodon.fetch_next(favourites)
+			except: favourites=None
 		drawPanelContents(tl[tlIdx:], hlIdx)
 		statusMsg("Getting mentions...", False)
 		statuses=mastodon.notifications()
@@ -569,7 +571,8 @@ def execCommand(cmd):
 			drawPanelContents(tl[tlIdx:], hlIdx)
 			page+=1
 			statusMsg("Getting mentions... page "+str(page), False)
-			statuses=mastodon.fetch_next(statuses)
+			try: statuses=mastodon.fetch_next(statuses)
+			except: statuses=None
 
 	if hlIdx+tlIdx<0:
 		hlIdx=0
