@@ -107,7 +107,11 @@ def statusMsg(msg, wait=True):
 	del query
 
 def queryForInput(msg, hideEcho=False):
-	query=curses.newwin(10, 100, int(ROWS/2)-5, int(COLS/2)-50)
+	offy=10
+	offx=100
+	if COLS<100: offx=COLS
+	if ROWS<10: offy=ROWS
+	query=curses.newwin(offy, offx, int(ROWS/2)-int(offy/2), int(COLS/2)-int(offx/2))
 	query.box()
 	query.addstr(1, 1, msg)
 	query.overlay(scr)
@@ -269,9 +273,9 @@ def drawPanels(uid, rows, cols, highlighted=0):
 	clopen="[(o)pen_CW]"
 	if isCWOpen:
 		clopen="[cl(o)se_CW]"
-	scr.addstr(centerPad("[(p)rev/(n)ext_unread] [(P)rev/(N)ext_message] [(j)ump to timeline] [(T)op] [(c)ompose] [(q)uit] [(/)_find]", cols).replace("_", " "), curses.color_pair(menunum))
-	scr.addstr(centerPad("[(b)oost] [(f)av] [mark_(u)nread] "+clopen+" [(t)hread_view] [(F)etch_new] [(:)_command]", cols).replace("_", " "), curses.color_pair(menunum))
-	drawLogo(leftPanelCols+(int(COLS-leftPanelCols)/2), int(ROWS/2))
+	scr.addstr(centerPad("[(p)rev/(n)ext_unread] [(P)rev/(N)ext_message] [(j)ump to timeline] [(T)op] [(c)ompose] [(q)uit] [(/)_find]", cols-1).replace("_", " "), curses.color_pair(menunum))
+	scr.addstr(centerPad("[(b)oost] [(f)av] [mark_(u)nread] "+clopen+" [(t)hread_view] [(F)etch_new] [(:)_command]", cols-1).replace("_", " "), curses.color_pair(menunum))
+	if COLS-(leftPanelCols+(COLS-leftPanelCols/2)) > 43: drawLogo(leftPanelCols+int((COLS-leftPanelCols)/2), int(ROWS/2))
 
 def drawMsgPanel(idx, user, cw, msg, date, seen=False):
 	panelstart=(idx*4)+1
