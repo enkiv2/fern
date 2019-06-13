@@ -510,7 +510,7 @@ def execCommand(cmd):
 	elif cmd=="search":
 		msg=queryForInput("Search query:")
 		if len(msg.strip())>0:
-			tids=tootbase.keys()
+			tids=list(tootbase.keys())
 			tids.sort()
 			tids.reverse()
 			try:
