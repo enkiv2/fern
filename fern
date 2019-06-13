@@ -547,6 +547,7 @@ def execCommand(cmd):
 	elif cmd=="import_history":
 		statusMsg("Getting statuses...", False)
 		statuses=mastodon.account_statuses(mastodon.account_verify_credentials()["id"])
+		statuses=None
 		page=1
 		while statuses != None:
 			for status in statuses:
@@ -561,10 +562,10 @@ def execCommand(cmd):
 			statusMsg("Getting statuses... page "+str(page), False)
 			statuses=mastodon.fetch_next(statuses)
 		statusMsg("Getting favorites...", False)
-		favorites=mastodon.favorites()
+		favourites=mastodon.favourites()
 		page=1
-		while favorites != None:
-			for status in favorites:
+		while favourites != None:
+			for status in favourites:
 				tid=status["id"]
 				if not tid in tootbase:
 					statusMsg("Fetching "+tid, False)
@@ -573,8 +574,8 @@ def execCommand(cmd):
 				execCommand("open_tid "+tid)
 				execCommand("expand_thread")
 			page+=1
-			statusMsg("Getting favorites... page "+str(page), False)
-			favorites=mastodon.fetch_next(favorites)
+			statusMsg("Getting favourites... page "+str(page), False)
+			favourites=mastodon.fetch_next(favourites)
 		statusMsg("Getting mentions...", False)
 		statuses=mastodon.notifications()
 		while statuses!=None:
