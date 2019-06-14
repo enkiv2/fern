@@ -57,8 +57,6 @@ logo="""
                             
 """
 
-global scr, ROWS, COLS, seen_toots
-
 ROWS=25
 COLS=80
 
