@@ -2,50 +2,35 @@
 # -*- coding: utf-8 -*-
 
 ##################### IMPORTS, POLYFILLS, AND SHIMS
-import sys
+import sys, curses, time, os, copy, traceback, re, locale, codecs
 try:
 	reload(sys)
 	sys.setdefaultencoding('utf8')
 except: pass
+locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+code = locale.getpreferredencoding()
+code="UTF-8"
+UTF8Writer = codecs.getwriter('utf8')
+sys.stdout = UTF8Writer(sys.stdout)
 
 try:
 	import cPickle
 	pickle=cPickle
 except: import pickle
 
-import curses, time, os, copy
 
 try:
-    from xdg import (XDG_CACHE_HOME, XDG_CONFIG_DIRS, XDG_CONFIG_HOME,
-                     XDG_DATA_DIRS, XDG_DATA_HOME, XDG_RUNTIME_DIR)
-    from os.path import join
+    from xdg import (XDG_CACHE_HOME, XDG_CONFIG_DIRS, XDG_CONFIG_HOME, XDG_DATA_DIRS, XDG_DATA_HOME, XDG_RUNTIME_DIR)
     ferndir = os.path.join(XDG_CONFIG_HOME, "fern")
 except:
     home = ""
     try:
         from pathlib import Path
-
         home = str(Path.home())
-    except:
-        from os.path import expanduser
-
-        home = expanduser("~")
+    except: home = os.path.expanduser("~")
     ferndir = home + "/.fern/"
 
 from datetime import datetime
-import traceback
-
-import re
-
-import locale
-locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
-code = locale.getpreferredencoding()
-code="UTF-8"
-
-import codecs
-
-UTF8Writer = codecs.getwriter('utf8')
-sys.stdout = UTF8Writer(sys.stdout)
 
 try: from html import unescape
 except:
