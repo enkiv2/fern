@@ -68,27 +68,25 @@ tb_dirty=[False]*100
 (hlnum, normnum, cwnum, textnum, menunum, seennum) = range(1, 7)
 
 ######################## CURSES HELPERS & WIZARDS
-def statusMsg(msg, wait=True):
-	query=curses.newwin(4, 80, int(ROWS/2)-5, int(COLS/2)-40)
-	query.box()
-	query.addstr(1, 1, msg)
-	query.overlay(scr)
-	scr.refresh()
-	query.refresh()
-	if wait: query.getch()
-	del query
-
-def queryForInput(msg, hideEcho=False):
-	offy=10
-	offx=100
-	if COLS<100: offx=COLS
-	if ROWS<10: offy=ROWS
+def box(offy, offx, msg):
 	query=curses.newwin(offy, offx, int(ROWS/2)-int(offy/2), int(COLS/2)-int(offx/2))
 	query.box()
 	query.addstr(1, 1, msg)
 	query.overlay(scr)
 	scr.refresh()
 	query.refresh()
+	return query
+
+def statusMsg(msg, wait=True):
+	query=box(4, 80, msg)
+	if wait: query.getch()
+	del query
+
+def queryForInput(msg, hideEcho=False):
+	(offy, offx)=(10, 100)
+	if COLS<100: offx=COLS
+	if ROWS<10: offy=ROWS
+	query=box(offy, offx, msg)
 	if not hideEcho: curses.echo()
 	curses.curs_set(1)
 	addy=query.getstr(2, 1, 500)
