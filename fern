@@ -19,15 +19,15 @@ try:
 except: import pickle
 
 try:
-    from xdg import (XDG_CACHE_HOME, XDG_CONFIG_DIRS, XDG_CONFIG_HOME, XDG_DATA_DIRS, XDG_DATA_HOME, XDG_RUNTIME_DIR)
-    ferndir = os.path.join(XDG_CONFIG_HOME, "fern")
+	from xdg import (XDG_CACHE_HOME, XDG_CONFIG_DIRS, XDG_CONFIG_HOME, XDG_DATA_DIRS, XDG_DATA_HOME, XDG_RUNTIME_DIR)
+	ferndir = os.path.join(XDG_CONFIG_HOME, "fern")
 except:
-    home = ""
-    try:
-        from pathlib import Path
-        home = str(Path.home())
-    except: home = os.path.expanduser("~")
-    ferndir = home + "/.fern/"
+	home = ""
+	try:
+		from pathlib import Path
+		home = str(Path.home())
+	except: home = os.path.expanduser("~")
+	ferndir = home + "/.fern/"
 
 try: from html import unescape
 except:
