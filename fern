@@ -69,32 +69,32 @@ tb_dirty=[False]*100
 
 ######################## CURSES HELPERS & WIZARDS
 def box(offy, offx, msg):
-	query=curses.newwin(offy, offx, int(ROWS/2)-int(offy/2), int(COLS/2)-int(offx/2))
-	query.box()
-	query.addstr(1, 1, msg)
-	query.overlay(scr)
-	scr.refresh();query.refresh()
-	return query
+	popup=curses.newwin(offy, offx, int(ROWS/2)-int(offy/2), int(COLS/2)-int(offx/2))
+	popup.box()
+	popup.addstr(1, 1, msg)
+	popup.overlay(scr)
+	scr.refresh();popup.refresh()
+	return popup
 
 def statusMsg(msg, wait=True):
-	query=box(4, 80, msg)
-	if wait: query.getch()
-	del query
+	popup=box(4, 80, msg)
+	if wait: popup.getch()
+	del popup
 
 def queryForInput(msg, hideEcho=False):
 	(offy, offx)=(10, 100)
 	if COLS<100: offx=COLS
 	if ROWS<10: offy=ROWS
-	query=box(offy, offx, msg)
+	popup=box(offy, offx, msg)
 	if not hideEcho: curses.echo()
 	curses.curs_set(1)
-	addy=query.getstr(2, 1, 500)
+	macguffin=popup.getstr(2, 1, 500)
 	curses.curs_set(0);curses.noecho()
-	del query
+	del popup
 	scr.refresh()
-	try: addy=addy.decode(code)
+	try: macguffin=macguffin.decode(code)
 	except: pass
-	return addy.replace("\\n", "\n")
+	return macguffin.replace("\\n", "\n")
 
 def registerApplication(instanceURL, email, password):
 	clientCredFname=ferndir+"clientcred.txt"
