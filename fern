@@ -57,21 +57,14 @@ logo="""
                             
 """
 
-ROWS=25
-COLS=80
+(ROWS, COLS)=(25,80)
 
 seen_toots=[]
 tb_dirty=[False]*100
-tootbase={}
-acctbase={}
+(tootbase,acctbase)=({},{})
 
-hlcolor=[curses.COLOR_MAGENTA, curses.COLOR_BLACK]
-normcolor=[curses.COLOR_WHITE, curses.COLOR_BLACK]
-cwcolor=[curses.COLOR_RED, curses.COLOR_BLACK]
-textcolor=[curses.COLOR_WHITE, curses.COLOR_BLACK]
-menucolor=[curses.COLOR_GREEN, curses.COLOR_BLACK]
-seencolor=[curses.COLOR_BLUE, curses.COLOR_BLACK]
-
+(hlcolor, normcolor, cwcolor, textcolor, menucolor, seencolor) = map(lambda x: [x, curses.COLOR_BLACK], 
+		[curses.COLOR_MAGENTA, curses.COLOR_WHITE, curses.COLOR_RED, curses.COLOR_WHITE, curses.COLOR_GREEN, curses.COLOR_BLUE])
 (hlnum, normnum, cwnum, textnum, menunum, seennum) = range(1, 7)
 
 ######################## CURSES HELPERS & WIZARDS
