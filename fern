@@ -73,8 +73,7 @@ def box(offy, offx, msg):
 	query.box()
 	query.addstr(1, 1, msg)
 	query.overlay(scr)
-	scr.refresh()
-	query.refresh()
+	scr.refresh();query.refresh()
 	return query
 
 def statusMsg(msg, wait=True):
@@ -90,8 +89,7 @@ def queryForInput(msg, hideEcho=False):
 	if not hideEcho: curses.echo()
 	curses.curs_set(1)
 	addy=query.getstr(2, 1, 500)
-	curses.curs_set(0)
-	curses.noecho()
+	curses.curs_set(0);curses.noecho()
 	del query
 	scr.refresh()
 	try: addy=addy.decode(code)
@@ -138,18 +136,13 @@ def setupCurses():
 	global scr, ROWS, COLS
 	scr = curses.initscr()
 	setupColor()
-	curses.cbreak()
-	curses.noecho()
-	curses.curs_set(0)
-	scr.keypad(1)
+	curses.cbreak();curses.noecho();curses.curs_set(0);scr.keypad(1)
 	ROWS, COLS = scr.getmaxyx()
 	scr.clear()
 	drawLogo()
 
 def teardownCurses():
-	curses.nocbreak()
-	scr.keypad(0)
-	curses.echo()
+	curses.nocbreak();scr.keypad(0);curses.echo()
 	curses.endwin()
 
 ######################### TEXT FORMATTING & PROCESSING HELPERS
