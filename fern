@@ -198,8 +198,7 @@ def fillInDomain(name):
 ######################## CODE FOR DRAWING THE TUI
 
 def drawPanels(uid, rows, cols, highlighted=0):
-	hlColor=curses.color_pair(hlnum)
-	color=curses.color_pair(normnum)
+	(hlColor, color)=(curses.color_pair(hlnum), curses.color_pair(normnum))
 	leftPanelCols=int((cols/8.0)*3)
 	rightPanelCols=cols-leftPanelCols
 	truncID=trunc(uid, leftPanelCols-3)
@@ -225,11 +224,9 @@ def drawMsgPanel(idx, user, cw, msg, date, seen=False):
 	panelstart=(idx*4)+1
 	if panelstart+4 > ROWS-2: return
 	panelwidth=int((COLS/8.0)*3)-1
-	mcol=curses.color_pair(menunum)
-	tcol=curses.color_pair(textnum)
+	(mcol, tcol)=(curses.color_pair(menunum), curses.color_pair(textnum))
 	if(seen):
-		mcol=curses.color_pair(seennum)
-		tcol=curses.color_pair(seennum)
+		(mcol, tcol)=[curses.color_pair(seennum)]*2
 	scr.addstr(panelstart, 1, trunc(user, panelwidth), mcol)
 	if not cw: scr.addstr(panelstart+1, 2, trunc(firstNonBlankLine(msg), panelwidth-2), tcol)
 	else: scr.addstr(panelstart+1, 2, trunc(cw, panelwidth-2), curses.color_pair(cwnum))
@@ -266,10 +263,8 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 	i=0
 	for toot in toots:
 		if(i>(ROWS-3)/4): continue
-		if "reblog" in toot and toot["reblog"]:
-			if type(toot["reblog"])==type(toot): toot=toot["reblog"]
-		if "muted" in toot: next
-		if not "id" in toot: next
+		if "reblog" in toot and toot["reblog"] and type(toot["reblog"])==type(toot): toot=toot["reblog"]
+		if "muted" in toot or not "id" in toot: next
 		if not toot["id"] in tootbase: tootbase[toot["id"]]=copy.deepcopy(toot)
 		seen=(toot["id"] in seen_toots)
 		if skipSeen and seen: next
@@ -286,28 +281,20 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 				for attachment in toot["media_attachments"]:
 					content+="\n"+attachment["url"]
 			flags=""
-			if "in_reply_to_id" in toot and toot["in_reply_to_id"]:
-				flags+="["+str(toot["in_reply_to_id"])+"<-]"
-			if toot["reblogged"]:
-				flags+="[b]"
-			if toot["favourited"]:
-				flags+="[f]"
-			if toot["sensitive"]:
-				flags+="[sensitive]"
-			if "visibility" in toot:
-				flags+="["+toot["visibility"]+"]"
+			if "in_reply_to_id" in toot and toot["in_reply_to_id"]: flags+="["+str(toot["in_reply_to_id"])+"<-]"
+			if toot["reblogged"]: flags+="[b]"
+			if toot["favourited"]: flags+="[f]"
+			if toot["sensitive"]: flags+="[sensitive]"
+			if "visibility" in toot: flags+="["+toot["visibility"]+"]"
 			if "mentions" in toot and toot["mentions"]:
-				if len(flags)>0:
-					flags+="\n"
+				if len(flags)>0: flags+="\n"
 				flags+="TO: "
-				for mention in toot["mentions"]:
-					flags+=fillInDomain(mention["acct"])+" "
+				for mention in toot["mentions"]: flags+=fillInDomain(mention["acct"])+" "
 				flags+="\n"
 			content=flags+content
 			if "tags" in toot and toot["tags"]:
 				tags=[]
-				for tag in toot["tags"]:
-					tags.append(tag["name"])
+				for tag in toot["tags"]: tags.append(tag["name"])
 				content+="\n\nTAGS: "+(" ".join(tags))
 			drawSelectedMsg(username, acct["display_name"], cw, content, isCWOpen)
 		i+=1
@@ -333,33 +320,23 @@ def execCommand(cmd):
 		saveBase()
 		teardownCurses()
 		sys.exit()
-	elif cmd=="prev":
-		hlIdx-=1
-	elif cmd=="next":
-		hlIdx+=1
+	elif cmd=="prev": hlIdx-=1
+	elif cmd=="next": hlIdx+=1
 	elif cmd=="prev_unread":
-		while hlIdx+tlIdx>0 and tl[hlIdx+tlIdx]["id"] in seen_toots:
-			hlIdx-=1
+		while hlIdx+tlIdx>0 and tl[hlIdx+tlIdx]["id"] in seen_toots: hlIdx-=1
 	elif cmd=="next_unread":
-		while hlIdx+tlIdx<len(tl) and tl[hlIdx+tlIdx]["id"] in seen_toots:
-			hlIdx+=1
-	elif cmd=="top":
-		tlIdx=0
-		hlIdx=0
+		while hlIdx+tlIdx<len(tl) and tl[hlIdx+tlIdx]["id"] in seen_toots: hlIdx+=1
+	elif cmd=="top": (tlIdx, hlIdx)=[0]*2
 	elif cmd.find("skipto ")==0:
-		try:
-			hlIdx=int(cmd.split()[1])
+		try: hlIdx=int(cmd.split()[1])
 		except: pass
 	elif cmd=="fetch":
-		try:
-			tl=getTimeline(since_id=tl[0]["id"])+tl
-		except:
-			tl=getTimeline()+tl
+		try: tl=getTimeline(since_id=tl[0]["id"])+tl
+		except: tl=getTimeline()+tl
 	elif cmd=="compose":
 		length=0
 		cw=queryForInput("CW (blank for none):")
-		if len(cw.strip())==0:
-			cw=None
+		if len(cw.strip())==0: cw=None
 		else: length=len(cw.strip())
 		msg=queryForInput("Toot content (blank for cancel):")
 		if msg:
@@ -369,19 +346,15 @@ def execCommand(cmd):
 				seen_toots.append(posted["id"])
 				tootbase[posted["id"]]=posted
 				tb_dirty[int(str(posted["id"])[-2:])]=True
-			except Exception as e:
-				statusMsg("Error in posting your "+str(length)+"-character message: "+str(e))
+			except Exception as e: statusMsg("Error in posting your "+str(length)+"-character message: "+str(e))
 	elif cmd=="reply":
-		cw=tl[tlIdx+hlIdx]["spoiler_text"]
-		tid=tl[tlIdx+hlIdx]["id"]
-		author=fillInDomain(tl[tlIdx+hlIdx]["account"]["acct"])
+		msg=tl[tlIdx+hlIdx]
+		(cw, tid, author)=(msg["spoiler_text"], msg["id"], fillInDomain(msg["account"]["acct"]))
 		mentions=[author]
 		for item in tl[tlIdx+hlIdx]["mentions"]:
 			name=fillInDomain(item["acct"])
-			if not name in mentions:
-				mentions.append(name)
-		if len(cw.strip())==0:
-			cw=None
+			if not name in mentions: mentions.append(name)
+		if len(cw.strip())==0: cw=None
 		msg=queryForInput("Toot content (blank for cancel):")
 		if msg:
 			msg="@"+" @".join(mentions).strip()+"\n"+msg
@@ -390,20 +363,15 @@ def execCommand(cmd):
 				seen_toots.append(posted["id"])
 				tootbase[posted["id"]]=posted
 				tb_dirty[int(str(posted["id"])[-2:])]=True
-			except Exception as e:
-				statusMsg("Error in posting your "+str(len(msg))+"-character reply: "+str(e))
+			except Exception as e: statusMsg("Error in posting your "+str(len(msg))+"-character reply: "+str(e))
 	elif cmd=="boost":
 		tid=tl[tlIdx+hlIdx]["id"]
-		try:
-			mastodon.status_reblog(tid)
-		except Exception as e:
-			statusMsg(str(e))
+		try: mastodon.status_reblog(tid)
+		except Exception as e: statusMsg(str(e))
 	elif cmd=="favourite":
 		tid=tl[tlIdx+hlIdx]["id"]
-		try:
-			mastodon.status_favourite(tid)
-		except Exception as e:
-			statusMsg(str(e))
+		try: mastodon.status_favourite(tid)
+		except Exception as e: statusMsg(str(e))
 	elif cmd=="mark_unread":
 		tid=tl[tlIdx+hlIdx]["id"]
 		if tid in seen_toots:
@@ -412,8 +380,7 @@ def execCommand(cmd):
 	elif cmd=="expand_thread":
 		statusMsg("Expanding thread...", False)
 		tid=tl[tlIdx+hlIdx]["id"]
-		if not tid in tootbase:
-			tootbase[tid]=copy.deepcopy(tl[tlIdx+hlIdx])
+		if not tid in tootbase: tootbase[tid]=copy.deepcopy(tl[tlIdx+hlIdx])
 		while tootbase[tid]["in_reply_to_id"]!=None:
 			statusMsg("Expanding thread... (ID "+str(tid)+")", False)
 			tid=tootbase[tid]["in_reply_to_id"]
@@ -423,22 +390,18 @@ def execCommand(cmd):
 		toots=[tootbase[tid]]
 		for item in mastodon.status_context(tid)["descendants"]:
 			statusMsg("Expanding thread... (ID "+str(item["id"])+")", False)
-			if not item["id"] in tootbase:
-				tootbase[item["id"]]=copy.deepcopy(item)
+			if not item["id"] in tootbase: tootbase[item["id"]]=copy.deepcopy(item)
 			toots.append(tootbase[item["id"]])
 		saveBase()
 		tl=toots+tl
 		tlIdx+=len(toots)-1
-	elif cmd=="toggle_cw":
-		isCWOpen=not isCWOpen
+	elif cmd=="toggle_cw": isCWOpen=not isCWOpen
 	elif cmd=="set_timeline":
 		msg=queryForInput("Timeline name (blank for cancel, separate multiple timelines with spaces):")
-		if len(msg.strip())>0:
-			currentTimeline=msg.strip()
+		if len(msg.strip())>0: currentTimeline=msg.strip()
 	elif cmd=="cmd":
 		msg=queryForInput("Command:")
-		if len(msg.strip())>0:
-			execCommand(msg.strip())
+		if len(msg.strip())>0: execCommand(msg.strip())
 	elif cmd=="search":
 		msg=queryForInput("Search query:")
 		if len(msg.strip())>0:
@@ -455,12 +418,10 @@ def execCommand(cmd):
 			toots=[]
 			for tid in tids:
 				if "spoiler_text" in tootbase[tid] and tootbase[tid]["spoiler_text"]:
-					if search(tootbase[tid]["spoiler_text"])!=None:
-						toots.append(tootbase[tid])
+					if search(tootbase[tid]["spoiler_text"])!=None: toots.append(tootbase[tid])
 				if search(tootbase[tid]["content"])!=None: toots.append(tootbase[tid])
 			tl=toots
-			tlIdx=0
-			hlIdx=0
+			(tlIdx, hlIdx)=[0]*2
 	elif cmd.find("open_tid ")==0:
 		try:
 			tid=cmd.split()[1].strip()
@@ -468,8 +429,7 @@ def execCommand(cmd):
 				tootbase[tid]=copy.deepcopy(mastodon.status(tid))
 				tb_dirty[int(tid[-2:])]=True
 			tl=[tootbase[tid]]+tl
-			tlIdx=0
-			hlIdx=0
+			(tlIdx, hlIdx)=[0]*2
 		except Exception as e: statusMsg(str(e))
 	elif cmd=="import_history":
 		drawPanelContents(tl[tlIdx:], hlIdx)
@@ -533,14 +493,11 @@ def execCommand(cmd):
 			try: statuses=mastodon.fetch_next(statuses)
 			except: statuses=None
 
-	if hlIdx+tlIdx<0:
-		hlIdx=0
-		tlIdx=0
+	if hlIdx+tlIdx<0:(hlIdx, tlIdx)=[0]*2
 	elif hlIdx<0:
 		tlIdx-=hlIdx
 		hlIdx=0
-	if(hlIdx+tlIdx>=len(tl)):
-		hlIdx=len(tl)-1
+	if(hlIdx+tlIdx>=len(tl)): hlIdx=len(tl)-1
 	if hlIdx>=(ROWS-3)/4:
 		tlIdx+=int((ROWS-4)/4)
 		hlIdx=0
@@ -549,8 +506,7 @@ def execCommand(cmd):
 		maxAdded=100
 		i=0
 		for item in tootbase:
-			if i>maxAdded:
-				continue
+			if i>maxAdded: continue
 			if not item in tids:
 				tl.append(tootbase[item])
 				i+=1
@@ -562,8 +518,7 @@ def getTimeline(which=None, **kw_args):
 	if which=="all": which="notifications home local public"
 	if which.find(" ")>=0:
 		tl=[]
-		for item in which.split():
-			tl.extend(getTimeline(item, **kw_args))
+		for item in which.split(): tl.extend(getTimeline(item, **kw_args))
 		return tl
 	statusMsg("Getting your "+which+" timeline. This might take a little while.", False)
 	tl=[]
@@ -571,13 +526,11 @@ def getTimeline(which=None, **kw_args):
 	if(which=="notifications"):
 		notes=mastodon.notifications()
 		for note in notes:
-			if note["type"]=="mention":
-				tl2.append(note["status"])
+			if note["type"]=="mention": tl2.append(note["status"])
 	else: tl2=mastodon.timeline(timeline=which, **kw_args)
 	i=0
 	for toot in tl2:
-		if toot["reblog"]:
-			toot=toot["reblog"]
+		if toot["reblog"]: toot=toot["reblog"]
 		try:
 			if not "id" in toot: next
 			tid=toot["id"]
@@ -677,16 +630,14 @@ def mainloop():
 def main():
 	global mastodon, domain, hlIdx, tlIdx, tl, acctbase, tootbase, seen_toots, currentTimeline, isCWOpen
 	isCWOpen=False
-	tlIdx=0
-	hlIdx=0
+	(tlIdx, hlIdx)=[0]*2
 	currentTimeline="notifications home"
 	if not os.path.exists(ferndir):
 		os.mkdir(ferndir)
 		registerApplicationHelper()
 	instance_url=""
 	try:
-			with open(ferndir+"instance_url.txt", 'r') as f:
-				instance_url=f.readline().strip()
+			with open(ferndir+"instance_url.txt", 'r') as f: instance_url=f.readline().strip()
 			mastodon=Mastodon(client_id=ferndir+"clientcred.txt", access_token=ferndir+"usercred.txt", api_base_url=instance_url, ratelimit_method="pace")
 			try: loadBase()
 			except: saveBase()
