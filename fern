@@ -74,12 +74,7 @@ textcolor=[curses.COLOR_WHITE, curses.COLOR_BLACK]
 menucolor=[curses.COLOR_GREEN, curses.COLOR_BLACK]
 seencolor=[curses.COLOR_BLUE, curses.COLOR_BLACK]
 
-hlnum=1
-normnum=2
-cwnum=3
-textnum=4
-menunum=5
-seennum=6
+(hlnum, normnum, cwnum, textnum, menunum, seennum) = range(1, 7)
 
 ######################## CURSES HELPERS & WIZARDS
 def statusMsg(msg, wait=True):
