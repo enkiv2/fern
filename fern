@@ -304,6 +304,7 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 commandKeys={
 	"q":"quit", 
 	"P":"prev", "N":"next", "p":"prev_unread", "n":"next_unread", 
+	"O":"last_unread",
 	"T":"top", "F":"fetch", 
 	"0":"skipto 0", "1":"skipto 1", "2":"skipto 2", "3":"skipto 3", "4":"skipto 4", "5":"skipto 5", "6":"skipto 6", "7":"skipto 7", "8":"skipto 8", "9":"skipto 9",
 	"c":"compose", "r":"reply",
@@ -402,26 +403,37 @@ def execCommand(cmd):
 	elif cmd=="cmd":
 		msg=queryForInput("Command:")
 		if len(msg.strip())>0: execCommand(msg.strip())
+	elif cmd.find("search_r ")==0:
+		msg=""
+		if len(cmd.split())>1: msg=cmd.split()[1]
+		tids=map(lambda x: int(x), list(tootbase.keys()))
+		tids.sort()
+		tids.reverse()
+		tids=map(lambda x: str(x), tids)
+		try:
+			matcher=re.compile(msg)
+			search=matcher.search
+		except:
+			def search(string):
+				if string.find(msg): return True
+				else:                return None
+		toots=[]
+		for tid in tids:
+			if msg!="" and "spoiler_text" in tootbase[tid] and tootbase[tid]["spoiler_text"]:
+				if search(tootbase[tid]["spoiler_text"])!=None: toots.append(tootbase[tid])
+			if msg=="" or search(tootbase[tid]["content"])!=None: toots.append(tootbase[tid])
+		tl=toots
+		(tlIdx, hlIdx)=[0]*2
 	elif cmd=="search":
 		msg=queryForInput("Search query:")
 		if len(msg.strip())>0:
-			tids=list(tootbase.keys())
-			tids.sort()
-			tids.reverse()
-			try:
-				matcher=re.compile(msg)
-				search=matcher.search
-			except:
-				def search(string):
-					if string.find(msg): return True
-					else:                return None
-			toots=[]
-			for tid in tids:
-				if "spoiler_text" in tootbase[tid] and tootbase[tid]["spoiler_text"]:
-					if search(tootbase[tid]["spoiler_text"])!=None: toots.append(tootbase[tid])
-				if search(tootbase[tid]["content"])!=None: toots.append(tootbase[tid])
-			tl=toots
-			(tlIdx, hlIdx)=[0]*2
+			execCommand("search_r "+(msg.strip()))
+	elif cmd=="last_unread":
+		execCommand("search_r ")
+		tlIdx=len(tl)-1
+		while tl[tlIdx]["id"] in seen_toots and tlIdx>0: tlIdx-=1
+		hlIdx=int((ROWS-4)/4)-1
+		tlIdx-=hlIdx
 	elif cmd.find("open_tid ")==0:
 		try:
 			tid=cmd.split()[1].strip()
