@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 ##################### IMPORTS, POLYFILLS, AND SHIMS
-import sys, curses, time, os, copy, traceback, re, locale, codecs
+import sys, curses, time, os, copy, traceback, re, locale, codecs, subprocess
 try:
 	reload(sys)
 	sys.setdefaultencoding('utf8')
@@ -13,6 +13,17 @@ code="UTF-8"
 UTF8Writer = codecs.getwriter('utf8')
 sys.stdout = UTF8Writer(sys.stdout)
 
+try:
+	subprocessRun=subprocess.run
+except AttributeError:
+	import shlex, tempfile
+	def subprocessRun(args, input=None):
+		if input != None:
+			tmp=tempfile.NamedTemporaryFile()
+			tmp.write(str(input))
+			input=open(tmp.name, 'r')
+			tmp.close()
+		return subprocess.call(shlex.split(args), stdin=input)
 try:
 	import cPickle
 	pickle=cPickle
@@ -217,7 +228,7 @@ def drawPanels(uid, rows, cols, highlighted=0):
 	clopen="[(o)pen_CW]"
 	if isCWOpen: clopen="[cl(o)se_CW]"
 	scr.addstr(centerPad("[(p)rev/(n)ext_unread] [(P)rev/(N)ext_message] [(O)pen_last_unread] [(j)ump_to_timeline] [(T)op] [(c)ompose] [(q)uit]", cols-1).replace("_", " "), curses.color_pair(menunum))
-	scr.addstr(centerPad("[(b)oost] [(f)av] [mark_(u)nread] "+clopen+" [(t)hread_view] [(F)etch_new] [(:)_command] [(/)_find]", cols-1).replace("_", " "), curses.color_pair(menunum))
+	scr.addstr(centerPad("[(b)oost] [(f)av] [mark_(u)nread] "+clopen+" [(t)hread_view] [(F)etch_new] [view_in_pa(g)er] [(:)_command] [(/)_find]", cols-1).replace("_", " "), curses.color_pair(menunum))
 	if COLS-(leftPanelCols+(COLS-leftPanelCols/2)) > 43: drawLogo(leftPanelCols+int((COLS-leftPanelCols)/2), int(ROWS/2))
 
 def drawMsgPanel(idx, user, cw, msg, date, seen=False):
@@ -307,6 +318,7 @@ commandKeys={
 	"O":"last_unread",
 	"T":"top", "F":"fetch", 
 	"0":"skipto 0", "1":"skipto 1", "2":"skipto 2", "3":"skipto 3", "4":"skipto 4", "5":"skipto 5", "6":"skipto 6", "7":"skipto 7", "8":"skipto 8", "9":"skipto 9",
+	"g":"pager",
 	"c":"compose", "r":"reply",
 	"b":"boost", "f":"favourite",
 	"u":"mark_unread",
@@ -434,6 +446,15 @@ def execCommand(cmd):
 		while tl[tlIdx]["id"] in seen_toots and tlIdx>0: tlIdx-=1
 		hlIdx=int((ROWS-4)/4)-1
 		tlIdx-=hlIdx
+	elif cmd=="pager":
+		pager=os.getenv("PAGER", os.getenv("VISUAL", os.getenv("EDITOR", "less")))
+		browser=os.getenv("BROWSER", "")
+		teardownCurses()
+		if browser!="":
+			subprocessRun(browser, "<html><body>"+tl[tlIdx+hlIdx]["content"]+"</body></html>")
+		else:
+			subprocessRun(pager, processContents(tl[tlIdx+hlIdx]["content"]))
+		setupCurses()
 	elif cmd.find("open_tid ")==0:
 		try:
 			tid=cmd.split()[1].strip()
