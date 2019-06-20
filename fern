@@ -504,15 +504,13 @@ def execCommand(cmd):
 			statusMsg("Getting mentions... page "+str(page), False)
 			try: statuses=mastodon.fetch_next(statuses)
 			except: statuses=None
-
+	tootsPerPage=int((ROWS-4)/4)
 	if hlIdx+tlIdx<0:(hlIdx, tlIdx)=[0]*2
-	elif hlIdx<0:
-		tlIdx-=hlIdx
-		hlIdx=0
-	if(hlIdx+tlIdx>=len(tl)): hlIdx=len(tl)-1
-	if hlIdx>=(ROWS-3)/4:
-		tlIdx+=int((ROWS-4)/4)
-		hlIdx=0
+	if(hlIdx+tlIdx>=len(tl)): (hlIdx, tlIdx)=(tootsPerPage-1, len(tl)-1)
+	position=hlIdx+tlIdx
+	if(position>0):
+		hlIdx=position%tootsPerPage
+		tlIdx=tootsPerPage*int(position/tootsPerPage)
 	if tlIdx>=len(tl):
 		tids=map(lambda x: x["id"], tl)
 		maxAdded=100
@@ -522,6 +520,7 @@ def execCommand(cmd):
 			if not item in tids:
 				tl.append(tootbase[item])
 				i+=1
+	if(hlIdx+tlIdx>=len(tl)): hlIdx+=((hlIdx+tlIdx)-len(tl))
 
 ######################### MASTODON & CACHE HANDLING
 def getTimeline(which=None, **kw_args):
