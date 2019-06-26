@@ -451,7 +451,13 @@ def execCommand(cmd):
 		browser=os.getenv("BROWSER", "")
 		teardownCurses()
 		if browser!="":
-			subprocessRun(browser, "<html><body>"+tl[tlIdx+hlIdx]["content"]+"</body></html>")
+			attach=""
+			if "media_attachments" in tl[tlIdx+hlIdx]:
+				for attachment in tl[tlIdx+hlIdx]["media_attachments"]:
+					t="embed"
+					if attachment["type"]=="image": t="img"
+					attach+="<br><"+t+' src="'+attachment["url"]+'">'
+			subprocessRun(browser, "<html><body>"+tl[tlIdx+hlIdx]["content"]+attach+"</body></html>")
 		else:
 			subprocessRun(pager, processContents(tl[tlIdx+hlIdx]["content"]))
 		setupCurses()
