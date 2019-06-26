@@ -206,6 +206,17 @@ def fillInDomain(name):
 	if name.find("@")<0: return name+"@"+domain
 	return name
 
+def applyCWRules(username, content, cw):
+	global cwrules
+	if not cw: cw=""
+	for rule in cwrules:
+		crule=re.compile(rule, re.I|re.M|re.U)
+		if crule.match(username)!=None: cw+=" "+cwrules[rule]
+		if crule.match(content)!=None: cw+=" "+cwrules[rule]
+	cw=cw.strip()
+	if not cw: return None
+	return cw
+
 ######################## CODE FOR DRAWING THE TUI
 
 def drawPanels(uid, rows, cols, highlighted=0):
@@ -281,9 +292,8 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 		if skipSeen and seen: next
 		acct=toot["account"]
 		username=fillInDomain(acct["acct"])
-		cw=toot["spoiler_text"]
-		if not cw: cw=None
 		content=processContents(toot["content"])
+		cw=applyCWRules(username, content, toot["spoiler_text"])
 		drawMsgPanel(i, username, cw, content, str(toot["created_at"]), seen)
 		if i==selectedIdx:
 			if not seen:
@@ -609,9 +619,12 @@ def getTimeline(which=None, **kw_args):
 
 def saveBase():
 	statusMsg("Saving tootbase...", False)
-	global tootbase, acctbase, seen_toots, tb_dirty
+	global tootbase, acctbase, seen_toots, cwrules, tb_dirty
 	with open(ferndir+"acctbase.pickle", "wb") as f: pickle.dump(acctbase, f)
 	with open(ferndir+"seenbase.pickle", "wb") as f: pickle.dump(seen_toots, f)
+	with open(ferndir+"cwrules.tsv", "w") as f:
+		for r in cwrules:
+			f.write(r+"\t"+cwrules[r]+"\n")
 	if True in tb_dirty:
 		for i in range(0, 100):
 				if tb_dirty[i] or not os.path.exists(ferndir+"tootbase"+str(i)+".pickle"):
@@ -625,7 +638,7 @@ def saveBase():
 def loadBase():
 	global tb_dirty
 	statusMsg("Loading tootbase...", False)
-	global tootbase, acctbase, seen_toots
+	global tootbase, acctbase, seen_toots, cwrules
 	with open(ferndir+"acctbase.pickle", "rb") as f: acctbase=pickle.load(f)
 	with open(ferndir+"seenbase.pickle", "rb") as f:
 		seen_toots=pickle.load(f)
@@ -635,6 +648,10 @@ def loadBase():
 				res.append(item.decode(code))
 			seen_toots=res
 		except: pass
+	with open(ferndir+"cwrules.tsv", "r") as f:
+		cwrules={}
+		for line in f.readlines():
+			cwrules[line.split("\t")[0]]=line.split("\t")[1]
 	if os.path.exists(ferndir+"tootbase0.pickle"):
 		for i in range(0, 100):
 			with open(ferndir+"tootbase"+str(i)+".pickle", "rb") as f:
@@ -665,8 +682,9 @@ def mainloop():
 	else: statusMsg("Key not handled: "+key)
 
 def main():
-	global mastodon, domain, hlIdx, tlIdx, tl, acctbase, tootbase, seen_toots, currentTimeline, isCWOpen
+	global mastodon, domain, hlIdx, tlIdx, tl, acctbase, tootbase, seen_toots, currentTimeline, isCWOpen, cwrules
 	isCWOpen=False
+	cwrules={}
 	(tlIdx, hlIdx)=[0]*2
 	currentTimeline="notifications home"
 	if not os.path.exists(ferndir):

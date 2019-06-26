@@ -67,6 +67,21 @@ This local cache is represented as a hash table keyed by message ID, and while i
 
 Messages are fetched and added to the local cache if the user requests a fetch (`F`), expands a thread (`t`), requests a particular message by ID (`:open_tid`), or imports history (`:import_history`). A save occurs after each manual fetch (once per timeline) or after expanding each thread, and it also occurs upon exit.
 
+## Setting up auto-CW rules
+
+Fern has a facility for automatically applying CWs to incoming toots based on regular expression matching. If the original post has a CW, then this adds the new categorizations to the end. These CWs are added at display time, so they aren't searchable.
+
+The rules are stored as a TSV, in the file called `cwrules.tsv` in your fern config directory (usually `~/.fern`).
+
+The first column of the TSV is a regular expression, and the second column is the CW tag to be applied. For instance:
+
+```
+twitter|(bir(d|b)|hell)site	Twitter mention
+sex|dick|baloney pony	lewd
+sad|depressed	MH(-)
+^(.+)@(noagenda\.social|sealion\.club)	troll instance
+```
+
 ## Missing features
 
 Fern does not supply the ability to follow, mute, or block other users. It also doesn't allow you to mute threads, edit profile information, or change the visibility of your toots. It does not perform client-side size limit checks. It does not attempt to render HTML -- it turns both links and images into raw URLs, turns `<p>` and `<br>` tags into newlines, and strips all other tags entirely.
