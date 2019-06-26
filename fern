@@ -325,6 +325,7 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 commandKeys={
 	"q":"quit", 
 	"P":"prev", "N":"next", "p":"prev_unread", "n":"next_unread", 
+	"KEY_PPAGE":"prev_page", "KEY_NPAGE":"next_page",
 	"O":"last_unread",
 	"T":"top", "F":"fetch", 
 	"0":"skipto 0", "1":"skipto 1", "2":"skipto 2", "3":"skipto 3", "4":"skipto 4", "5":"skipto 5", "6":"skipto 6", "7":"skipto 7", "8":"skipto 8", "9":"skipto 9",
@@ -339,6 +340,7 @@ commandKeys={
 	":":"cmd"}
 def execCommand(cmd):
 	global hlIdx, tlIdx, tl, currentTimeline, isCWOpen, seen_toots, tootbase, tb_dirty
+	tootsPerPage=int((ROWS-4)/4)
 	if cmd=="quit":
 		saveBase()
 		teardownCurses()
@@ -349,6 +351,10 @@ def execCommand(cmd):
 		while hlIdx+tlIdx>0 and tl[hlIdx+tlIdx]["id"] in seen_toots: hlIdx-=1
 	elif cmd=="next_unread":
 		while hlIdx+tlIdx<len(tl) and tl[hlIdx+tlIdx]["id"] in seen_toots: hlIdx+=1
+	elif cmd=="next_page":
+		tlIdx+=tootsPerPage
+	elif cmd=="prev_page":
+		tlIdx-=tootsPerPage
 	elif cmd=="top": (tlIdx, hlIdx)=[0]*2
 	elif cmd.find("skipto ")==0:
 		try: hlIdx=int(cmd.split()[1])
@@ -541,7 +547,6 @@ def execCommand(cmd):
 			statusMsg("Getting mentions... page "+str(page), False)
 			try: statuses=mastodon.fetch_next(statuses)
 			except: statuses=None
-	tootsPerPage=int((ROWS-4)/4)
 	if hlIdx+tlIdx<0:(hlIdx, tlIdx)=[0]*2
 	position=hlIdx+tlIdx
 	if(position>=len(tl) and position<len(tootbase.keys())):
