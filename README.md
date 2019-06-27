@@ -67,6 +67,10 @@ This local cache is represented as a hash table keyed by message ID, and while i
 
 Messages are fetched and added to the local cache if the user requests a fetch (`F`), expands a thread (`t`), requests a particular message by ID (`:open_tid`), or imports history (`:import_history`). A save occurs after each manual fetch (once per timeline) or after expanding each thread, and it also occurs upon exit.
 
+## Viewing images & long messages
+
+Fern has a pager facility (accessed by pressing `g`). Setting a pager allows one to scroll through long messages, and setting a browser allows viewing messages as HTML. If the environment variable `BROWSER` is set to `w3m -T text/html -o auto_image=TRUE` and your copy of w3m was built with image support, then you can view images attached to a toot in your terminal by pressing `g`. The `BROWSER` environment variable, if it exists, overrides the value of `PAGER`.
+
 ## Setting up auto-CW rules
 
 Fern has a facility for automatically applying CWs to incoming toots based on regular expression matching. If the original post has a CW, then this adds the new categorizations to the end. These CWs are added at display time, so they aren't searchable.
@@ -84,7 +88,7 @@ sad|depressed	MH(-)
 
 ## Missing features
 
-Fern does not supply the ability to follow, mute, or block other users. It also doesn't allow you to mute threads, edit profile information, or change the visibility of your toots. It does not perform client-side size limit checks. It does not attempt to render HTML -- it turns both links and images into raw URLs, turns `<p>` and `<br>` tags into newlines, and strips all other tags entirely.
+Fern does not supply the ability to follow, mute, or block other users. It also doesn't allow you to mute threads, edit profile information, or change the visibility of your toots. It does not perform client-side size limit checks. It does not attempt to render HTML -- it turns both links and images into raw URLs, turns `<p>` and `<br>` tags into newlines, and strips all other tags entirely -- so users who want to see properly-rendered HTML must use an HTML pager.
 
 Fern was planned to support nuanced (killfile-like) blocking and filtering, but this has not yet been implemented.
 
@@ -92,7 +96,7 @@ We have no account-switching support. The most convenient way to do this right n
 
 ## Flaws
 
-Sometimes, the mastodon API doesn't give us as many messages as we ask for, or truncates the range. If you don't use fern for a couple days, you're liable to miss notifications. There must be some way to get around this, since the mastodon web client seems to be able to show arbitrarily many messages.
+Sometimes, the mastodon API doesn't give us as many messages as we ask for, or truncates the range. If you don't use fern for a couple days, you're liable to miss notifications. Using the page facility can get around this, & in the future fetch ought to use it.
 
 Fern isn't heavily tested on python3, and switching between python 2 and python 3 with the same configuration and cache can cause problems. Specifically, it can corrupt your cache, because of some changes to how strings work that are too hairy for me to fully understand.
 
