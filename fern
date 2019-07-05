@@ -388,7 +388,7 @@ def execCommand(cmd):
 		if msg:
 			msg="@"+" @".join(mentions).strip()+"\n"+msg
 			try:
-				posted=mastodon.status_post(msg, in_reply_to_id=tid, spoiler_text=cw)
+				posted=mastodon.status_post(msg, in_reply_to_id=tid, spoiler_text=cw, visibility=tootbase[tid]["visibility"])
 				seen_toots.append(posted["id"])
 				tootbase[posted["id"]]=posted
 				tb_dirty[int(str(posted["id"])[-2:])]=True
