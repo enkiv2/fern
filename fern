@@ -492,21 +492,23 @@ def execCommand(cmd):
 		statuses=mastodon.account_statuses(mastodon.account_verify_credentials()["id"])
 		page=1
 		while statuses != None:
-			for status in statuses:
-				try:
-					tid=status["id"]
-					if not tid in tootbase:
-						statusMsg("Fetching "+tid, False)
-						tootbase[tid]=copy.deepcopy(status)
-						tb_dirty[int(tid[-2:])]=True
-					execCommand("open_tid "+tid)
-					execCommand("expand_thread")
-				except Exception as e: statusMsg(str(e), False)
-			drawPanelContents(tl[tlIdx:], hlIdx)
-			page+=1
-			statusMsg("Getting statuses... page "+str(page), False)
-			try: statuses=mastodon.fetch_next(statuses)
-			except: statuses=None
+			try:
+				for status in statuses:
+					try:
+						tid=status["id"]
+						if not tid in tootbase:
+							statusMsg("Fetching "+tid, False)
+							tootbase[tid]=copy.deepcopy(status)
+							tb_dirty[int(tid[-2:])]=True
+						execCommand("open_tid "+tid)
+						execCommand("expand_thread")
+					except Exception as e: statusMsg(str(e), False)
+				drawPanelContents(tl[tlIdx:], hlIdx)
+				page+=1
+				statusMsg("Getting statuses... page "+str(page), False)
+				try: statuses=mastodon.fetch_next(statuses)
+				except: statuses=None
+			except Exception as e: pass
 		drawPanelContents(tl[tlIdx:], hlIdx)
 		statusMsg("Getting favorites...", False)
 		favourites=mastodon.favourites()
