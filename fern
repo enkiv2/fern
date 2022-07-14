@@ -512,9 +512,7 @@ def getTimeline(which=None, **kw_args):
 	tl=[]
 	tl2=[]
 	if(which=="notifications"):
-		notes=mastodon.notifications()
-		for note in notes:
-			if note["type"]=="mention": tl2.append(note["status"])
+		tl2=[x["status"] for x in mastodon.notifications(mentions_only=True)]
 	else: tl2=mastodon.timeline(timeline=which, **kw_args)
 	tl.extend(ensureCached(tl2, verbose=True))
 	saveBase()
@@ -568,8 +566,10 @@ def importHistory(src="all", verbose=False):
 		page=mastodon.account_statuses(mastodon.account_verify_credentials()["id"])
 	elif src in ["favorites", "favourites"]:
 		page=mastodon.favourites()
-	elif src=="notifications":
+	elif src==["notifications"]: # xxx: notifications are handled differently
 		page=mastodon.notifications()
+	elif src==["mentions"]:
+		page=mastodon.notifications(mentions_only=True)
 	else:
 		statusMsg("Unknown history source: "+src)
 		return []
@@ -641,19 +641,23 @@ def ensureCached(toot, verbose=False, ignoreErrors=True, msg=None):
 					return None
 				else:
 					raise e
-	elif type(toot)==dict:
+	else: #if type(toot)==dict:
 		if type(toot["reblog"])==dict: toot=ensureCached(toot["reblog"])
 		if not "id" in toot: return toot
-		tid=toot["id"]
+		tid=str(toot["id"])
 		if tid in seen_toots: return toot
 		if not tid in tootbase:
 			tmp=copy.deepcopy(toot)
 			tmp["account"]=ensureCachedAcct(tmp["account"], verbose, ignoreErrors, msg)
 			tootbase[tid]=tmp
-			tb_dirty[int(tid[-2:])]=True
+			dirty(tid)
 		return tootbase[tid]
-	else:
-		statusMsg("Unexpected type of toot: "+str(type(toot)))
+#	else:
+#		statusMsg("Unexpected type of toot: "+str(type(toot)), True)
+
+def dirty(tid):
+	global tb_dirty
+	tb_dirty[int(tid[-2:])]=True
 
 def saveBase():
 	statusMsg("Saving tootbase...", False)
