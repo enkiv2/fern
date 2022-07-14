@@ -328,6 +328,27 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 		i+=1
 	scr.refresh()
 
+def conditionalErrMsg(default_msg, verbose=False, wait=False, msg=None, suffix=None, err=None, prefix="Error"):
+	if err:
+		if suffix:
+			suffix=str(suffix)+": "
+		else:
+			suffix=""
+		suffix+=str(err)
+	conditionalStatusMsg(default_msg, verbose, wait, msg, prefix, suffix)
+
+def conditionalStatusMsg(default_msg, verbose=False, wait=False, msg=None, prefix=None, suffix=None):
+	if verbose:
+		myMsg=default_msg
+		if msg:
+			myMsg=msg
+		if prefix:
+			myMsg=prefix+" "+myMsg
+		if suffix:
+			myMsg+=" "+suffix
+		statusMsg(myMsg, wait)
+
+
 ###################### COMMAND SYSTEM
 commandKeys={
 	"q":"quit", 
@@ -517,8 +538,7 @@ def getTimeline(which=None, **kw_args):
 	if which.find("_all")>0:
 		getAll=True
 		which=which.split("_")[0]
-	if verbose:
-		statusMsg("Getting your "+which+" timeline. This might take a little while.", False)
+	conditionalStatusMsg(which, verbose, False, prefix="Getting your", suffix="timeline. This might take a little while.")
 	if(which=="notifications"):
 		tl=mastodon.notifications()
 	elif which=="statuses":
@@ -535,25 +555,21 @@ def getTimeline(which=None, **kw_args):
 	return tl
 
 def expandThreads(tids, verbose=False):
-	if verbose:
-		statusMsg("Expanding "+str(len(tids))+" threads...", False)
+	conditionalStatusMsg(str(len(tids)), verbose, False, prefix="Expanding", suffix="threads...")
 	ret=[]
 	for tid in tids:
 		ret+=expandThread(tid, verbose)
 	return ret
 
 def expandThread(tid, verbose=False):
-	if verbose:
-		statusMsg("Expanding thread...", False)
+	conditionalStatusMsg("Expanding thread...", verbose, False)
 	ensureCached(tid)
 	if not tid in tootbase:
-		if verbose:
-			statusMsg("Could not fetch message ID "+str(tid), False)
+		conditionalStatusMsg("Could not fetch message ID", verbose, False, suffix=str(tid))
 		return []
 	tid2=tid
 	while tid2 in tootbase and tootbase[tid]["in_reply_to_id"]!=None:
-		if verbose:
-			statusMsg("Expanding thread... (ID "+str(tid)+")", False)
+		conditionalStatusMsg("Expanding thread... ID:", verbose, False, suffix=str(tid))
 		tid2=tootbase[tid]["in_reply_to_id"]
 		ensureCached(tid2)
 		if tid2 in tootbase:
@@ -581,15 +597,12 @@ def importHistory(src="all", verbose=False):
 
 def allPages(page, verbose=False, msg=None):
 	myMsg="Getting statuses..."
-	if msg:
-		myMsg=msg
 	ret=[]
 	pageNum=1
 	while None!=page:
 		ret+=ensureCached(page)
 		pageNum+=1
-		if verbose:
-			statusMsg(msg+" page "+str(pageNum), False)
+		conditionalStatusMsg("Getting statuses...", verbose, False, msg, suffix="page "+str(pageNum))
 		try: page=mastodon.fetch_next(page)
 		except: page=None
 	return ret
@@ -598,18 +611,14 @@ def getMentions(notifications):
 	return [x["status"] for x in notifications if x["type"]=="mentions"]
 
 def ensureCachedAcct(acct, verbose=False, ignoreErrors=True, msg=None, force=False):
-	myMsg="fetching account ID"
-	if msg:
-		myMsg=msg
+	dmsg="fetching account ID"
 	if type(acct)==str:
-		if verbose:
-			statusMsg(myMsg+acct, ignoreErrors)
+		conditionalStatusMsg(dmsg, verbose, (not ignoreErrors), msg, suffix=acct)
 		try:
 			acct=mastodon.account(acct)
 		except Exception as e:
-			if verbose:
-				statusMsg("Error "+myMsg+" "+acct+": "+str(e), ignoreErrors)
-			elif ignoreErrors:
+			conditionalErrMsg(dmsg, verbose, (not ignoreErrors), msg, acct, e)
+			if ignoreErrors:
 				return None
 			else:
 				raise e
@@ -625,24 +634,21 @@ def ensureCachedAcct(acct, verbose=False, ignoreErrors=True, msg=None, force=Fal
 
 def ensureCached(toot, verbose=False, ignoreErrors=True, msg=None):
 	global tootbase, tb_dirty
-	myMsg="fetching message ID"
-	if msg:
-		myMsg=msg
+	dmsg="fetching message ID"
 	if None==toot:
 		return None
 	if type(toot)==list: # list of TIDs or toots
 		return [x for x in list(map(lambda x: ensureCached(x, verbose, ignoreErrors, msg), toot)) if None!=x]
 	elif type(toot) in [str, unicode]: # TID
+		suffix=toot
 		if not toot in tootbase:
-			if verbose:
-				statusMsg(myMsg+" "+toot, ignoreErrors)
+			conditionalStatusMsg(dmsg, false, verbose, msg, suffix=suffix)
 			try:
 				status=mastodon.status(toot)
 				return ensureCached(status, verbose, ignoreErrors, msg)
 			except Exception as e:
-				if verbose:
-					statusMsg("Error "+myMsg+" "+toot+": "+str(e), ignoreErrors)
-				elif ignoreErrors:
+				conditionalErrMsg(dmsg, verbose, (not ignoreErrors), msg, toot, e)
+				if ignoreErrors:
 					return None
 				else:
 					raise e
