@@ -279,14 +279,14 @@ def drawSelectedMsg(user, displayname, cw, msg, cwopen=False):
 				scr.addstr(i, panelstart, line, curses.color_pair(textnum))
 				i+=1
 
-def drawPanelContents(toots, selectedIdx):	
+def drawPanelContents(items, selectedIdx):	
 	global isCWOpen
 	scr.clear()
 	drawPanels(fillInDomain(mastodon.account_verify_credentials()["acct"]), ROWS, COLS, selectedIdx)
 	i=0
-	for toot in stripNulls(toots):
+	for item in stripNulls(items):
 		if(i>(ROWS-3)/4): continue
-		drawSelectionMenuItem(i, (i==selectedIdx), toot[0], *toot[1])
+		drawSelectionMenuItem(i, (i==selectedIdx), item[0], *item[1])
 		i+=1
 	scr.refresh()
 
