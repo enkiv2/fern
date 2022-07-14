@@ -514,7 +514,7 @@ def getTimeline(which=None, **kw_args):
 	tl=[]
 	tl2=[]
 	if(which=="notifications"):
-		tl2=[x["status"] for x in mastodon.notifications(mentions_only=myAccountId)]
+		tl2=ensureCached([x["status"] for x in mastodon.notifications(mentions_only=myAccountId) if x["type"]=="mention"])
 	else: tl2=mastodon.timeline(timeline=which, **kw_args)
 	tl.extend(ensureCached(tl2, verbose=True))
 	saveBase()
@@ -577,7 +577,7 @@ def importHistory(src="all", verbose=False):
 		return []
 	toots=allPages(page, True, "Getting "+src+"...")
 	if src in ["notifications", "mentions"]:
-		toots=ensureCached([x["status"] for x in toots])
+		toots=ensureCached([x["status"] for x in toots if x["type"]=="mention"])
 	return expandThreads(list(map(lambda x: gTid(x), toots)), True)
 
 def allPages(page, verbose=False, msg=None):
