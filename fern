@@ -73,6 +73,7 @@ logo="""
 seen_toots=[]
 tb_dirty=[False]*100
 (tootbase,acctbase)=({},{})
+myAccountId=""
 
 (hlcolor, normcolor, cwcolor, textcolor, menucolor, seencolor) = map(lambda x: [x, curses.COLOR_BLACK], 
 		[curses.COLOR_MAGENTA, curses.COLOR_WHITE, curses.COLOR_RED, curses.COLOR_WHITE, curses.COLOR_GREEN, curses.COLOR_BLUE])
@@ -513,11 +514,11 @@ def getTimeline(which=None, **kw_args):
 	tl=[]
 	tl2=[]
 	if(which=="notifications"):
-		tl2=[x["status"] for x in mastodon.notifications(mentions_only=True)]
+		tl2=[x["status"] for x in mastodon.notifications(mentions_only=myAccountId)]
 	else: tl2=mastodon.timeline(timeline=which, **kw_args)
 	tl.extend(ensureCached(tl2, verbose=True))
 	saveBase()
-	return tl
+	return [x for x in tl if x!=None]
 
 def expandThreads(tids, verbose=False):
 	if verbose:
@@ -564,17 +565,19 @@ def importHistory(src="all", verbose=False):
 	page=None
 	statusMsg("Getting "+src+"...", False)
 	if src=="statuses":
-		page=mastodon.account_statuses(mastodon.account_verify_credentials()["id"])
+		page=mastodon.account_statuses(myAccountId)
 	elif src in ["favorites", "favourites"]:
 		page=mastodon.favourites()
-	elif src==["notifications"]: # xxx: notifications are handled differently
+	elif src=="notifications": # xxx: notifications are handled differently
 		page=mastodon.notifications()
-	elif src==["mentions"]:
-		page=mastodon.notifications(mentions_only=True)
+	elif src=="mentions":
+		page=mastodon.notifications(mentions_only=myAccountId)
 	else:
 		statusMsg("Unknown history source: "+src)
 		return []
 	toots=allPages(page, True, "Getting "+src+"...")
+	if src in ["notifications", "mentions"]:
+		toots=ensureCached([x["status"] for x in toots])
 	return expandThreads(list(map(lambda x: gTid(x), toots)), True)
 
 def allPages(page, verbose=False, msg=None):
@@ -590,6 +593,7 @@ def allPages(page, verbose=False, msg=None):
 			statusMsg(msg+" page "+str(pageNum), False)
 		try: page=mastodon.fetch_next(page)
 		except: page=None
+		if pageNum>1: return ret
 	return ret
 		
 
@@ -643,7 +647,7 @@ def ensureCached(toot, verbose=False, ignoreErrors=True, msg=None):
 				else:
 					raise e
 	else: #if type(toot)==dict:
-		if type(toot["reblog"])==dict: toot=ensureCached(toot["reblog"])
+		if "reblog" in toot and toot["reblog"]: toot=ensureCached(toot["reblog"])
 		if not "id" in toot: return toot
 		tid=gTid(toot)
 		if tid in seen_toots: return toot
@@ -735,7 +739,7 @@ def mainloop():
 	else: statusMsg("Key not handled: "+key)
 
 def main():
-	global mastodon, domain, hlIdx, tlIdx, tl, acctbase, tootbase, seen_toots, currentTimeline, isCWOpen, cwrules
+	global mastodon, myAccountId, domain, hlIdx, tlIdx, tl, acctbase, tootbase, seen_toots, currentTimeline, isCWOpen, cwrules
 	isCWOpen=False
 	cwrules={}
 	(tlIdx, hlIdx)=[0]*2
@@ -747,6 +751,7 @@ def main():
 	try:
 			with open(ferndir+"instance_url.txt", 'r') as f: instance_url=f.readline().strip()
 			mastodon=Mastodon(client_id=ferndir+"clientcred.txt", access_token=ferndir+"usercred.txt", api_base_url=instance_url, ratelimit_method="pace")
+			myAccountId=mastodon.account_verify_credentials()["id"]
 			try: loadBase()
 			except: saveBase()
 	except Exception as e:
