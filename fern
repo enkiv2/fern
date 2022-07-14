@@ -417,10 +417,8 @@ def execCommand(cmd):
 		tlIdx+=len(toots)-1
 	elif cmd=="expand_notes":
 		notes=getTimeline("notifications")
-		statusMsg("Expanding "+str(len(notes))+" notifications...", False)
 		(tl, tlIdx, hlIdx) = ([], 0, 0)
-		for note in notes:
-			tl+=expandThread(note["id"])
+		tl=expandThreads(list(map(lambda x: x["id"], notes)))
 	elif cmd=="toggle_cw": isCWOpen=not isCWOpen
 	elif cmd=="set_timeline":
 		msg=queryForInput("Timeline name (blank for cancel, separate multiple timelines with spaces):")
@@ -575,6 +573,14 @@ def getTimeline(which=None, **kw_args):
 	tl.extend(ensureCached(tl2, verbose=True))
 	saveBase()
 	return tl
+
+def expandThreads(tids, verbose=False):
+	if verbose:
+		statusMsg("Expanding "+str(len(tids))+" threads...", False)
+	ret=[]
+	for tid in tids:
+		ret+=expandThread(tid, verbose)
+	return ret
 
 def expandThread(tid, verbose=False):
 	if verbose:
