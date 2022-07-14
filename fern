@@ -348,6 +348,35 @@ def conditionalStatusMsg(default_msg, verbose=False, wait=False, msg=None, prefi
 			myMsg+=" "+suffix
 		statusMsg(myMsg, wait)
 
+def prettyProfile(acct):
+	locked="[unlocked]"
+	if acct["locked"]:
+		locked="[ locked ]"
+	discoverable="[vis:yes]"
+	if acct["discoverable"]==False:
+		discoverable="[vis:no ]"
+	elif acct["discoverable"]==None:
+		discoverable="[vis:?  ]"
+	bot="[bot:no ]"
+	if acct["bot"]:
+		bot="[bot:yes]"
+	body=[
+				"("+("/".join([x+":"+str(acct[x+"_count"]) for x in ["following", "followers", "statuses"]]))+")",
+				"",
+				"Bio:",
+				processContents(acct["note"])
+	]
+	if acct["fields"]:
+		body.extend(["", "Fields:"]+[x["name"]+":\t"+x["value"] for x in acct["fields"]])	
+	ret=[fillInDomain(acct["acct"]), acct["display_name"], locked+discoverable+bot, body, str(acct["created_at"]), False, True]
+	return [acct["id"], ret]
+
+def drawSelectionMenuItem(i, selected, username, displayName, cw, content, date, seen, isCWOpen):
+	drawMsgPanel(i, username, cw, content, date, seen)
+	if selected:
+		drawSelectedMsg(username, displayName, cw, content, isCWOpen)
+def selectMatches(l):
+	return []
 
 ###################### COMMAND SYSTEM
 commandKeys={
@@ -428,6 +457,26 @@ def execCommand(cmd):
 		tid=gTid(tl[tlIdx+hlIdx])
 		try: mastodon.status_favourite(tid)
 		except Exception as e: statusMsg(str(e))
+	elif cmd=="follow":
+		msg=queryForInput("Search for a user (blank for cancel):")
+		msg=msg.strip()
+		if len(msg)>0:
+			matches=None
+			try:
+				matches=mastodon.account_search(msg)
+			except Exception as e: statusMsg(str(e))
+			if None!=matches:
+				if len(matches)==0:
+					statusMsg("No matches found for :"+msg)
+				else:
+					clean_matches=[ensureCachedAcct(x) for x in matches if not x["moved_to_account"]]
+					prettyMatches=[prettyProfile(x) for x in clean_matches]
+					selected=selectMatches(prettyMatches)
+					if len(selected)>0:
+						for acct in selected:
+							try:
+								mastodon_follow(acct)
+							except Exception as e: statusMsg(str(e))
 	elif cmd=="mark_unread":
 		tid=gTid(tl[tlIdx+hlIdx])
 		if tid in seen_toots:
