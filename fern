@@ -292,8 +292,9 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 		else: 
 			if "reblog" in toot and toot["reblog"] and type(toot["reblog"])==type(toot): toot=toot["reblog"]
 			if "muted" in toot or not "id" in toot: next
-			if not toot["id"] in tootbase: tootbase[toot["id"]]=copy.deepcopy(toot)
-			seen=(toot["id"] in seen_toots)
+			tid=gTid(toot)
+			if not tid in tootbase: tootbase[tid]=copy.deepcopy(toot)
+			seen=(tid in seen_toots)
 			if skipSeen and seen: next
 			acct=toot["account"]
 			username=fillInDomain(acct["acct"])
@@ -302,7 +303,7 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 			drawMsgPanel(i, username, cw, content, str(toot["created_at"]), seen)
 			if i==selectedIdx:
 				if not seen:
-					seen_toots.append(toot["id"])
+					seen_toots.append(tid)
 				if "media_attachments" in toot:
 					for attachment in toot["media_attachments"]:
 						content+="\n"+attachment["url"]
@@ -354,9 +355,9 @@ def execCommand(cmd):
 	elif cmd=="prev": hlIdx-=1
 	elif cmd=="next": hlIdx+=1
 	elif cmd=="prev_unread":
-		while hlIdx+tlIdx>0 and tl[hlIdx+tlIdx]["id"] in seen_toots: hlIdx-=1
+		while hlIdx+tlIdx>0 and gTid(tl[hlIdx+tlIdx]) in seen_toots: hlIdx-=1
 	elif cmd=="next_unread":
-		while hlIdx+tlIdx<len(tl) and tl[hlIdx+tlIdx]["id"] in seen_toots: hlIdx+=1
+		while hlIdx+tlIdx<len(tl) and gTid(tl[hlIdx+tlIdx]) in seen_toots: hlIdx+=1
 	elif cmd=="next_page":
 		tlIdx+=tootsPerPage
 	elif cmd=="prev_page":
@@ -366,7 +367,7 @@ def execCommand(cmd):
 		try: hlIdx=int(cmd.split()[1])
 		except: pass
 	elif cmd=="fetch":
-		try: tl=getTimeline(since_id=tl[0]["id"])+tl
+		try: tl=getTimeline(since_id=gTid(tl[0]))+tl
 		except: tl=getTimeline()+tl
 	elif cmd=="compose":
 		length=0
@@ -378,12 +379,12 @@ def execCommand(cmd):
 			length+=len(msg)
 			try:
 				posted=mastodon.status_post(msg, spoiler_text=cw)
-				seen_toots.append(posted["id"])
+				seen_toots.append(gTid(posted))
 				tl.insert(tlIdx+hlIdx, ensureCached(posted))
 			except Exception as e: statusMsg("Error in posting your "+str(length)+"-character message: "+str(e))
 	elif cmd=="reply":
 		msg=tl[tlIdx+hlIdx]
-		(cw, tid, author)=(msg["spoiler_text"], msg["id"], fillInDomain(msg["account"]["acct"]))
+		(cw, tid, author)=(msg["spoiler_text"], gTid(msg), fillInDomain(msg["account"]["acct"]))
 		mentions=[author]
 		for item in tl[tlIdx+hlIdx]["mentions"]:
 			name=fillInDomain(item["acct"])
@@ -394,31 +395,31 @@ def execCommand(cmd):
 			msg="@"+" @".join(mentions).strip()+"\n"+msg
 			try:
 				posted=mastodon.status_post(msg, in_reply_to_id=tid, spoiler_text=cw, visibility=tootbase[tid]["visibility"])
-				seen_toots.append(posted["id"])
+				seen_toots.append(gTid(posted))
 				tl.insert(tlIdx+hlIdx, ensureCached(posted))
 			except Exception as e: statusMsg("Error in posting your "+str(len(msg))+"-character reply: "+str(e))
 	elif cmd=="boost":
-		tid=tl[tlIdx+hlIdx]["id"]
+		tid=gTid(tl[tlIdx+hlIdx])
 		try: mastodon.status_reblog(tid)
 		except Exception as e: statusMsg(str(e))
 	elif cmd=="favourite":
-		tid=tl[tlIdx+hlIdx]["id"]
+		tid=gTid(tl[tlIdx+hlIdx])
 		try: mastodon.status_favourite(tid)
 		except Exception as e: statusMsg(str(e))
 	elif cmd=="mark_unread":
-		tid=tl[tlIdx+hlIdx]["id"]
+		tid=gTid(tl[tlIdx+hlIdx])
 		if tid in seen_toots:
 			seen_toots.remove(tid)
 			hlIdx+=1
 	elif cmd=="expand_thread":
-		tid=tl[tlIdx+hlIdx]["id"]
+		tid=gTid(tl[tlIdx+hlIdx])
 		toots=expandThread(tid)
 		tl=toots+tl
 		tlIdx+=len(toots)-1
 	elif cmd=="expand_notes":
 		notes=getTimeline("notifications")
 		(tl, tlIdx, hlIdx) = ([], 0, 0)
-		tl=expandThreads(list(map(lambda x: x["id"], notes)))
+		tl=expandThreads(list(map(lambda x: gTid(x), notes)))
 	elif cmd=="toggle_cw": isCWOpen=not isCWOpen
 	elif cmd=="set_timeline":
 		msg=queryForInput("Timeline name (blank for cancel, separate multiple timelines with spaces):")
@@ -454,7 +455,7 @@ def execCommand(cmd):
 	elif cmd=="last_unread":
 		execCommand("search_r ")
 		tlIdx=len(tl)-1
-		while tl[tlIdx]["id"] in seen_toots and tlIdx>0: tlIdx-=1
+		while gTid(tl[tlIdx]) in seen_toots and tlIdx>0: tlIdx-=1
 		hlIdx=int((ROWS-4)/4)-1
 		tlIdx-=hlIdx
 	elif cmd=="pager":
@@ -485,7 +486,7 @@ def execCommand(cmd):
 	if hlIdx+tlIdx<0:(hlIdx, tlIdx)=[0]*2
 	position=hlIdx+tlIdx
 	if(position>=len(tl) and position<len(tootbase.keys())):
-		tids=map(lambda x: x["id"], tl)
+		tids=map(lambda x: gTid(x), tl)
 		maxAdded=100
 		i=0
 		for item in tootbase:
@@ -574,7 +575,7 @@ def importHistory(src="all", verbose=False):
 		statusMsg("Unknown history source: "+src)
 		return []
 	toots=allPages(page, True, "Getting "+src+"...")
-	return expandThreads(list(map(lambda x: x["id"], toots)), True)
+	return expandThreads(list(map(lambda x: gTid(x), toots)), True)
 
 def allPages(page, verbose=False, msg=None):
 	myMsg="Getting statuses..."
@@ -644,7 +645,7 @@ def ensureCached(toot, verbose=False, ignoreErrors=True, msg=None):
 	else: #if type(toot)==dict:
 		if type(toot["reblog"])==dict: toot=ensureCached(toot["reblog"])
 		if not "id" in toot: return toot
-		tid=str(toot["id"])
+		tid=gTid(toot)
 		if tid in seen_toots: return toot
 		if not tid in tootbase:
 			tmp=copy.deepcopy(toot)
@@ -654,6 +655,16 @@ def ensureCached(toot, verbose=False, ignoreErrors=True, msg=None):
 		return tootbase[tid]
 #	else:
 #		statusMsg("Unexpected type of toot: "+str(type(toot)), True)
+
+def gTid(toot):
+	if None==toot:
+		return None
+	if type(toot)==int:
+		return str(toot)
+	elif type(toot)==list:
+		return [gTid(x) for x in toot]
+	else:
+		return str(toot["id"])
 
 def dirty(tid):
 	global tb_dirty
