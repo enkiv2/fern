@@ -474,14 +474,12 @@ def execCommand(cmd):
 	elif cmd.find("open_tid ")==0:
 		try:
 			tid=cmd.split()[1].strip()
-			if not tid in tootbase:
-				tootbase[tid]=copy.deepcopy(mastodon.status(tid))
-				tb_dirty[int(tid[-2:])]=True
-			tl=[tootbase[tid]]+tl
+			tl=[ensureCached(tid)]+tl
 			(tlIdx, hlIdx)=[0]*2
 		except Exception as e: statusMsg(str(e))
 	elif cmd=="import_history":
-		drawPanelContents(tl[tlIdx:], hlIdx)
+		(tlIdx, hlIdx) = [0]*2
+		drawPanelContents(tl, hlIdx)
 		statusMsg("Getting statuses...", False)
 		statuses=mastodon.account_statuses(mastodon.account_verify_credentials()["id"])
 		page=1
@@ -494,8 +492,7 @@ def execCommand(cmd):
 							statusMsg("Fetching "+tid, False)
 							tootbase[tid]=copy.deepcopy(status)
 							tb_dirty[int(tid[-2:])]=True
-						execCommand("open_tid "+tid)
-						execCommand("expand_thread")
+						tl=expandThread(tid)+tl
 					except Exception as e: statusMsg(str(e), False)
 				drawPanelContents(tl[tlIdx:], hlIdx)
 				page+=1
@@ -515,8 +512,7 @@ def execCommand(cmd):
 						statusMsg("Fetching "+tid, False)
 						tootbase[tid]=copy.deepcopy(status)
 						tb_dirty[int(tid[-2:])]=True
-					execCommand("open_tid "+tid)
-					execCommand("expand_thread")
+					tl=expandThread(tid)+tl
 				except Exception as e: statusMsg(str(e), False)
 			drawPanelContents(tl[tlIdx:], hlIdx)
 			page+=1
@@ -535,8 +531,7 @@ def execCommand(cmd):
 						statusMsg("Fetching "+tid, False)
 						tootbase[tid]=copy.deepcopy(status["status"])
 						tb_dirty[int(tid[-2:])]=True
-					execCommand("open_tid "+tid)
-					execCommand("expand_thread")
+					tl=expandThread(tid)+tl
 				except Exception as e: statusMsg(str(e), False)
 			drawPanelContents(tl[tlIdx:], hlIdx)
 			page+=1
@@ -561,7 +556,6 @@ def execCommand(cmd):
 
 def expandThread(tid):
 	statusMsg("Expanding thread...", False)
-	if not tid in tootbase: tootbase[tid]=copy.deepcopy(tl[tlIdx+hlIdx])
 	while tootbase[tid]["in_reply_to_id"]!=None:
 		statusMsg("Expanding thread... (ID "+str(tid)+")", False)
 		tid=tootbase[tid]["in_reply_to_id"]
@@ -634,6 +628,22 @@ def getTimeline(which=None, **kw_args):
 				except: tl.append(toot)
 	saveBase()
 	return tl
+
+def ensureCached(toot, verbose=False):
+	global tootbase, tb_dirty
+	if type(toot)==list: # list of TIDs or toots
+		return list(map(toot, lambda x: ensureCached(x, verbose)))
+	elif type(toot)==str: # TID
+		if not tid in tootbase:
+			if verbose:
+				statusMsg("Fetching "+tid, False)
+			return ensureCached(mastodon.status(tid), verbose)
+	else:
+		tid=toot["id"]
+		if not tid in tootbase:
+			tootbase[tid]=copy.deepcopy(toot)
+			tb_dirty[int(tid[-2:])]=True
+		return tootbase[tid]
 
 def saveBase():
 	statusMsg("Saving tootbase...", False)
