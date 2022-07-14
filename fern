@@ -554,10 +554,13 @@ def execCommand(cmd):
 		tlIdx=tootsPerPage*int(position/tootsPerPage)
 	if(hlIdx+tlIdx>=len(tl)): hlIdx+=((hlIdx+tlIdx)-len(tl))
 
-def expandThread(tid):
-	statusMsg("Expanding thread...", False)
+def expandThread(tid, verbose=False):
+	if verbose:
+		statusMsg("Expanding thread...", False)
+	ensureCached(tid)
 	while tootbase[tid]["in_reply_to_id"]!=None:
-		statusMsg("Expanding thread... (ID "+str(tid)+")", False)
+		if verbose:
+			statusMsg("Expanding thread... (ID "+str(tid)+")", False)
 		tid=tootbase[tid]["in_reply_to_id"]
 		ensureCached(tid)
 	toots=[tootbase[tid]]
@@ -620,7 +623,7 @@ def ensureCached(toot, verbose=False, ignoreErrors=True, msg=None):
 	if None==toot:
 		return None
 	if type(toot)==list: # list of TIDs or toots
-		return list(map(lambda x: ensureCached(x, verbose, ignoreErrors, msg), toot))
+		return [x for x in list(map(lambda x: ensureCached(x, verbose, ignoreErrors, msg), toot)) if None!=x]
 	elif type(toot) in [str, unicode]: # TID
 		if not toot in tootbase:
 			if verbose:
