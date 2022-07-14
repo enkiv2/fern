@@ -287,9 +287,9 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 	for toot in toots:
 		if(i>(ROWS-3)/4): continue
 		if toot==None:
-			if i==selectedIdx:
-				selectedIdx+=1
 			drawMsgPanel(i, "", "", "MESSAGE UNAVAILABLE", "", True)
+			if i==selectedIdx:
+				drawSelectedMsg("", "", "", "MESSAGE UNAVAILABLE", True)
 		else: 
 			if "reblog" in toot and toot["reblog"] and type(toot["reblog"])==type(toot): toot=toot["reblog"]
 			if "muted" in toot or not "id" in toot: next
@@ -638,7 +638,7 @@ def ensureCached(toot, verbose=False, ignoreErrors=True, msg=None):
 	if None==toot:
 		return None
 	if type(toot)==list: # list of TIDs or toots
-		return [x for x in list(map(lambda x: ensureCached(x, verbose, ignoreErrors, msg), toot)) if None!=x]
+		return stripNulls([ensureCached(x, verbose, ignoreErrors, msg) for x in toot])
 	elif type(toot) in [str, unicode]: # TID
 		suffix=toot
 		if not toot in tootbase:
@@ -679,6 +679,9 @@ def gTid(toot):
 def dirty(tid):
 	global tb_dirty
 	tb_dirty[int(tid[-2:])]=True
+
+def stripNulls(l):
+	return [x for x in l if None!=x]
 
 def saveBase():
 	statusMsg("Saving tootbase...", False)
