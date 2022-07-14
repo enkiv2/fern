@@ -368,7 +368,7 @@ def execCommand(cmd):
 		try: hlIdx=int(cmd.split()[1])
 		except: pass
 	elif cmd=="fetch":
-		try: tl=getTimeline(since_id=gTid(tl[0]))+tl
+		try: tl=getTimeline(verbose=True, since_id=gTid(tl[0]))+tl
 		except: tl=getTimeline()+tl
 	elif cmd=="compose":
 		length=0
@@ -418,7 +418,7 @@ def execCommand(cmd):
 		tl=toots+tl
 		tlIdx+=len(toots)-1
 	elif cmd=="expand_notes":
-		notes=getTimeline("notifications")
+		notes=getTimeline("notifications", verbose=True)
 		(tl, tlIdx, hlIdx) = ([], 0, 0)
 		tl=expandThreads(list(map(lambda x: gTid(x), notes)))
 	elif cmd=="toggle_cw": isCWOpen=not isCWOpen
@@ -503,22 +503,36 @@ def execCommand(cmd):
 
 ######################### MASTODON & CACHE HANDLING
 def getTimeline(which=None, **kw_args):
-	global tootbase, acctbase, currentTimeline, tb_dirty
 	if not which: which=currentTimeline
 	if which=="all": which="notifications home local public"
+	tl=[]
 	if which.find(" ")>=0:
-		tl=[]
 		for item in which.split(): tl.extend(getTimeline(item, **kw_args))
 		return tl
-	statusMsg("Getting your "+which+" timeline. This might take a little while.", False)
-	tl=[]
-	tl2=[]
+	verbose=kw_args.get("verbose", False)
+	getAll=kw_args.get("getAll", False)
+	for opt in ["verbose", "getAll"]:
+		if opt in kw_args:
+			del kw_args[opt]
+	if which.find("_all")>0:
+		getAll=True
+		which=which.split("_")[0]
+	if verbose:
+		statusMsg("Getting your "+which+" timeline. This might take a little while.", False)
 	if(which=="notifications"):
-		tl2=getMentions(mastodon.notifications())
-	else: tl2=mastodon.timeline(timeline=which, **kw_args)
-	tl.extend(tl2)
+		tl=mastodon.notifications()
+	elif which=="statuses":
+		tl=mastodon.account_statuses(myAccountId)
+	elif which in ["favorites", "favourites"]:
+		tl=mastodon.favourites()
+	else: tl=mastodon.timeline(timeline=which, **kw_args)
+	if getAll:
+		tl=allPages(tl, verbose)
+	if(which=="notifications"):
+		tl=getMentions(tl)
+	tl=ensureCached(tl)
 	saveBase()
-	return ensureCached([x for x in tl if x!=None])
+	return tl
 
 def expandThreads(tids, verbose=False):
 	if verbose:
@@ -561,23 +575,8 @@ def importHistory(src="all", verbose=False):
 		return ret
 	src=str(src[0])
 	if src=="all":
-		return importHistory(["statuses", "favorites", "mentions"], verbose)
-	page=None
-	statusMsg("Getting "+src+"...", False)
-	if src=="statuses":
-		page=mastodon.account_statuses(myAccountId)
-	elif src in ["favorites", "favourites"]:
-		page=mastodon.favourites()
-	elif src=="notifications": # xxx: notifications are handled differently
-		page=mastodon.notifications()
-	elif src=="mentions":
-		page=mastodon.notifications(mentions_only=myAccountId)
-	else:
-		statusMsg("Unknown history source: "+src)
-		return []
-	toots=allPages(page, True, "Getting "+src+"...")
-	if src in ["notifications", "mentions"]:
-		toots=ensureCached(getMentions(toots))
+		return importHistory(["statuses", "favorites", "notifications"], verbose)
+	toots=getTimeline(src, getAll=True)
 	return expandThreads(list(map(lambda x: gTid(x), toots)), True)
 
 def allPages(page, verbose=False, msg=None):
@@ -593,7 +592,6 @@ def allPages(page, verbose=False, msg=None):
 			statusMsg(msg+" page "+str(pageNum), False)
 		try: page=mastodon.fetch_next(page)
 		except: page=None
-		if pageNum>1: return ret
 	return ret
 		
 def getMentions(notifications):
@@ -761,8 +759,8 @@ def main():
 		registerApplicationHelper()
 		main()
 	domain=re.sub("^http.?://", "", re.sub("/$", "", mastodon.instance()["uri"]))
-	if len(seen_toots)>0: tl=getTimeline("all", since_id=seen_toots[-1])
-	else: tl=getTimeline("all")
+	if len(seen_toots)>0: tl=getTimeline("all", verbose=True, since_id=seen_toots[-1])
+	else: tl=getTimeline("all", verbose=True)
 	while True:
 		try: mainloop()
 		except SystemExit as e: break
