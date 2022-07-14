@@ -337,6 +337,7 @@ commandKeys={
 	"o":"toggle_cw",
 	"j":"set_timeline",
 	"/":"search",
+	"E":"expand_notes",
 	":":"cmd"}
 def execCommand(cmd):
 	global hlIdx, tlIdx, tl, currentTimeline, isCWOpen, seen_toots, tootbase, tb_dirty
@@ -407,23 +408,16 @@ def execCommand(cmd):
 			seen_toots.remove(tid)
 			hlIdx+=1
 	elif cmd=="expand_thread":
-		statusMsg("Expanding thread...", False)
 		tid=tl[tlIdx+hlIdx]["id"]
-		if not tid in tootbase: tootbase[tid]=copy.deepcopy(tl[tlIdx+hlIdx])
-		while tootbase[tid]["in_reply_to_id"]!=None:
-			statusMsg("Expanding thread... (ID "+str(tid)+")", False)
-			tid=tootbase[tid]["in_reply_to_id"]
-			if not tid in tootbase:
-				tootbase[tid]=copy.deepcopy(mastodon.status(tid))
-				tb_dirty[int(tid[-2:])]=True
-		toots=[tootbase[tid]]
-		for item in mastodon.status_context(tid)["descendants"]:
-			statusMsg("Expanding thread... (ID "+str(item["id"])+")", False)
-			if not item["id"] in tootbase: tootbase[item["id"]]=copy.deepcopy(item)
-			toots.append(tootbase[item["id"]])
-		saveBase()
+		toots=expandThread(tid)
 		tl=toots+tl
 		tlIdx+=len(toots)-1
+	elif cmd=="expand_notes":
+		notes=getTimeline("notifications")
+		statusMsg("Expanding "+str(len(notes))+" notifications...", False)
+		(tl, tlIdx, hlIdx) = ([], 0, 0)
+		for note in notes:
+			tl+=expandThread(note["id"])
 	elif cmd=="toggle_cw": isCWOpen=not isCWOpen
 	elif cmd=="set_timeline":
 		msg=queryForInput("Timeline name (blank for cancel, separate multiple timelines with spaces):")
@@ -564,6 +558,23 @@ def execCommand(cmd):
 		hlIdx=position%tootsPerPage
 		tlIdx=tootsPerPage*int(position/tootsPerPage)
 	if(hlIdx+tlIdx>=len(tl)): hlIdx+=((hlIdx+tlIdx)-len(tl))
+
+def expandThread(tid):
+	statusMsg("Expanding thread...", False)
+	if not tid in tootbase: tootbase[tid]=copy.deepcopy(tl[tlIdx+hlIdx])
+	while tootbase[tid]["in_reply_to_id"]!=None:
+		statusMsg("Expanding thread... (ID "+str(tid)+")", False)
+		tid=tootbase[tid]["in_reply_to_id"]
+		if not tid in tootbase:
+			tootbase[tid]=copy.deepcopy(mastodon.status(tid))
+			tb_dirty[int(tid[-2:])]=True
+	toots=[tootbase[tid]]
+	for item in mastodon.status_context(tid)["descendants"]:
+		statusMsg("Expanding thread... (ID "+str(item["id"])+")", False)
+		if not item["id"] in tootbase: tootbase[item["id"]]=copy.deepcopy(item)
+		toots.append(tootbase[item["id"]])
+	saveBase()
+	return toots
 
 ######################### MASTODON & CACHE HANDLING
 def getTimeline(which=None, **kw_args):
