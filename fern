@@ -379,8 +379,7 @@ def execCommand(cmd):
 			try:
 				posted=mastodon.status_post(msg, spoiler_text=cw)
 				seen_toots.append(posted["id"])
-				tootbase[posted["id"]]=posted
-				tb_dirty[int(str(posted["id"])[-2:])]=True
+				tl.insert(tlIdx+hlIdx, ensureCached(posted))
 			except Exception as e: statusMsg("Error in posting your "+str(length)+"-character message: "+str(e))
 	elif cmd=="reply":
 		msg=tl[tlIdx+hlIdx]
