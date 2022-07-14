@@ -584,72 +584,72 @@ def getTimeline(which=None, **kw_args):
 		for note in notes:
 			if note["type"]=="mention": tl2.append(note["status"])
 	else: tl2=mastodon.timeline(timeline=which, **kw_args)
-	i=0
-	for toot in tl2:
-		if toot["reblog"]: toot=toot["reblog"]
-		try:
-			if not "id" in toot: next
-			tid=toot["id"]
-			if tid in seen_toots: next
-			statusMsg("Getting your "+which+" timeline, toot "+tid+" ("+str(i)+"/"+str(limit)+")", False)
-			if not tid in tootbase:
-				tb_dirty[int(tid[-2:])]=True
-				acct=toot["account"]
-				if "id" in acct:
-					acctid=acct["id"]
-					if not acctid in acctbase:
-						statusMsg("Getting your "+which+" timeline, toot "+tid+" [account] ("+str(i)+"/"+str(limit)+")", False)
-						tmp={"id":acctid}
-						for item in ["username", "acct", "display_name"]:
-							statusMsg("Getting your "+which+" timeline, toot "+tid+" [account."+item+"] ("+str(i)+"/"+str(limit)+")", False)
-							tmp[item]=acct[item]
-						acctbase[acctid]=tmp
-						acct=tmp
-					tmp={"account":acctbase[acctid], "id":tid}
-				else: tmp={"account":acct, "id":tid}
-				tmp["id"]=tid
-				for item in toot:
-					statusMsg("Getting your "+which+" timeline, toot "+tid+" ["+item+"] ("+str(i)+"/"+str(limit)+")", False)
-					if item in toot: tmp[item]=toot[item]
-				tootbase[tid]=tmp
-			tl.append(tootbase[tid])
-			i+=1
-		except:
-			try:
-				tl.append(copy.deepcopy(toot))
-				tl[-1]["id"]=toot["id"]
-			except:
-				try:
-					tl.append(copy.copy(toot))
-					tl[-1]["id"]=toot["id"]
-				except: tl.append(toot)
+	tl.extend(ensureCached(tl2, verbose=True))
 	saveBase()
 	return tl
 
-def ensureCached(toot, verbose=False, ignoreErrors=True):
+def ensureCachedAcct(acct, verbose=False, ignoreErrors=True, msg=None, force=False):
+	myMsg="fetching account ID"
+	if msg:
+		myMsg=msg
+	if type(acct)==str:
+		if verbose:
+			statusMsg(myMsg+acct, ignoreErrors)
+		try:
+			acct=mastodon.account(acct)
+		except Exception as e:
+			if verbose:
+				statusMsg("Error "+myMsg+" "+acct+": "+str(e), ignoreErrors)
+			elif ignoreErrors:
+				return None
+			else:
+				raise e
+		return ensureCachedAcct(acct, verbose, ignoreErrors, msg, force)
+	elif "id" in acct:
+		acctid=acct["id"]
+		if not acctid in acctbase or force:
+			tmp={"id":acctid}
+			for item in ["username", "acct", "display_name"]:
+				tmp[item]=acct[item]
+			acctbase[acctid]=tmp
+	return acct
+
+def ensureCached(toot, verbose=False, ignoreErrors=True, msg=None):
 	global tootbase, tb_dirty
+	myMsg="fetching message ID"
+	if msg:
+		myMsg=msg
+	if None==toot:
+		return None
 	if type(toot)==list: # list of TIDs or toots
-		return list(map(toot, lambda x: ensureCached(x, verbose)))
-	elif type(toot)==str: # TID
+		return list(map(lambda x: ensureCached(x, verbose, ignoreErrors, msg), toot))
+	elif type(toot) in [str, unicode]: # TID
 		if not toot in tootbase:
 			if verbose:
-				statusMsg("Fetching "+toot, False)
+				statusMsg(myMsg+" "+toot, ignoreErrors)
 			try:
 				status=mastodon.status(toot)
-				return ensureCached(status, verbose)
+				return ensureCached(status, verbose, ignoreErrors, msg)
 			except Exception as e:
 				if verbose:
-					statusMsg("Error fetching "+toot+": "+str(e), ignoreErrors)
+					statusMsg("Error "+myMsg+" "+toot+": "+str(e), ignoreErrors)
 				elif ignoreErrors:
 					return None
 				else:
 					raise e
-	else:
+	elif type(toot)==dict:
+		if type(toot["reblog"])==dict: toot=ensureCached(toot["reblog"])
+		if not "id" in toot: return toot
 		tid=toot["id"]
+		if tid in seen_toots: return toot
 		if not tid in tootbase:
-			tootbase[tid]=copy.deepcopy(toot)
+			tmp=copy.deepcopy(toot)
+			tmp["account"]=ensureCachedAcct(tmp["account"], verbose, ignoreErrors, msg)
+			tootbase[tid]=tmp
 			tb_dirty[int(tid[-2:])]=True
 		return tootbase[tid]
+	else:
+		statusMsg("Unexpected type of toot: "+str(type(toot)))
 
 def saveBase():
 	statusMsg("Saving tootbase...", False)
