@@ -74,6 +74,7 @@ seen_toots=[]
 tb_dirty=[False]*100
 (tootbase,acctbase)=({},{})
 myAccountId=""
+selection=[]
 
 (hlcolor, normcolor, cwcolor, textcolor, menucolor, seencolor) = map(lambda x: [x, curses.COLOR_BLACK], 
 		[curses.COLOR_MAGENTA, curses.COLOR_WHITE, curses.COLOR_RED, curses.COLOR_WHITE, curses.COLOR_GREEN, curses.COLOR_BLUE])
@@ -220,7 +221,7 @@ def applyCWRules(username, content, cw):
 
 ######################## CODE FOR DRAWING THE TUI
 
-def drawPanels(uid, rows, cols, highlighted=0):
+def drawPanels(uid, rows, cols, highlighted=0, selectMode=False):
 	(hlColor, color)=(curses.color_pair(hlnum), curses.color_pair(normnum))
 	leftPanelCols=int((cols/8.0)*3)
 	rightPanelCols=cols-leftPanelCols
@@ -237,10 +238,14 @@ def drawPanels(uid, rows, cols, highlighted=0):
 			scr.addstr("".join(["+", "_"*(leftPanelCols-1), bottom, " "*(rightPanelCols-1)]), color)
 	if (rows-3)%4>0:
 		for i in range(4*int((rows-3)/4), rows-3): scr.addstr(" "*cols)
-	clopen="[(o)pen_CW]"
-	if isCWOpen: clopen="[cl(o)se_CW]"
-	scr.addstr(centerPad("[(p)rev/(n)ext_unread] [(P)rev/(N)ext_message] [(O)pen_last_unread] [(j)ump_to_timeline] [(T)op] [(c)ompose] [(q)uit]", cols-1).replace("_", " "), curses.color_pair(menunum))
-	scr.addstr(centerPad("[(b)oost] [(f)av] [mark_(u)nread] "+clopen+" [(t)hread_view] [(F)etch_new] [view_in_pa(g)er] [(:)_command] [(/)_find]", cols-1).replace("_", " "), curses.color_pair(menunum))
+	if selectMode:
+		scr.addstr(centerPad("[(p)rev/(n)ext_unread] [(p)rev/(n)ext_message] [(o)pen_last_unread] [(T)op]", cols-1).replace("_", " "), curses.color_pair(menunum))
+		scr.addstr(centerPad("[(x)_toggle_selection] [(q)uit_selection]", cols-1).replace("_", " "), curses.color_pair(menunum))
+	else:
+		clopen="[(o)pen_CW]"
+		if isCWOpen: clopen="[cl(o)se_CW]"
+		scr.addstr(centerPad("[(p)rev/(n)ext_unread] [(p)rev/(n)ext_message] [(o)pen_last_unread] [(j)ump_to_timeline] [(T)op] [(c)ompose] [(q)uit]", cols-1).replace("_", " "), curses.color_pair(menunum))
+		scr.addstr(centerPad("[(b)oost] [(f)av] [mark_(u)nread] "+clopen+" [(t)hread_view] [(F)etch_new] [view_in_pa(g)er] [(:)_command] [(/)_find]", cols-1).replace("_", " "), curses.color_pair(menunum))
 	if COLS-(leftPanelCols+(COLS-leftPanelCols/2)) > 43: drawLogo(leftPanelCols+int((COLS-leftPanelCols)/2), int(ROWS/2))
 
 def drawMsgPanel(idx, user, cw, msg, date, seen=False):
@@ -279,10 +284,10 @@ def drawSelectedMsg(user, displayname, cw, msg, cwopen=False):
 				scr.addstr(i, panelstart, line, curses.color_pair(textnum))
 				i+=1
 
-def drawPanelContents(items, selectedIdx):	
+def drawPanelContents(items, selectedIdx, selectMode=False):	
 	global isCWOpen
 	scr.clear()
-	drawPanels(fillInDomain(mastodon.account_verify_credentials()["acct"]), ROWS, COLS, selectedIdx)
+	drawPanels(fillInDomain(mastodon.account_verify_credentials()["acct"]), ROWS, COLS, selectedIdx, selectMode)
 	i=0
 	for item in stripNulls(items):
 		if(i>(ROWS-3)/4): continue
@@ -371,7 +376,7 @@ def prettyProfile(acct):
 	]
 	if acct["fields"]:
 		body.extend(["", "Fields:"]+[x["name"]+":\t"+x["value"] for x in acct["fields"]])	
-	ret=[fillInDomain(acct["acct"]), acct["display_name"], locked+discoverable+bot, displayName, body, str(acct["created_at"]), False, True]
+	ret=[fillInDomain(acct["acct"]), acct["display_name"], locked+discoverable+bot, acct["display_name"], "\n".join(body), str(acct["created_at"]), False, True]
 	return [acct["id"], ret]
 
 def drawSelectionMenuItem(i, selected, tid, username, displayName, cw, shortContent, content, date, seen, isCWOpen):
@@ -380,17 +385,32 @@ def drawSelectionMenuItem(i, selected, tid, username, displayName, cw, shortCont
 		if not tid in seen_toots:
 			seen_toots.append(tid)
 		drawSelectedMsg(username, displayName, cw, content, isCWOpen)
-def selectMatches(l):
-	return []
+def selectMatches(l, seen=[]):
+	global hlIdx, tl, tlIdx, selection, seen_toots
+	backup=(hlIdx, tlIdx, tl, seen_toots, selection)
+	(tl, hlIdx, tlIdx, seen_toots, selection) = (l, 0, 0, seen, seen)
+	drawPanelContents(tl[tlIdx:], hlIdx, selectMode=True)
+	while not mainloop(True):
+		drawPanelContents(tl[tlIdx:], hlIdx, selectMode=True)
+	selected=selection
+	(hlIdx, tlIdx, tl, seen_toots, selection) = backup
+	return selected
 
 ###################### COMMAND SYSTEM
-commandKeys={
-	"q":"quit", 
+sharedCommandKeys={
+	"q":"quit",
 	"P":"prev", "N":"next", "p":"prev_unread", "n":"next_unread", 
 	"KEY_PPAGE":"prev_page", "KEY_NPAGE":"next_page",
 	"O":"last_unread",
-	"T":"top", "F":"fetch", 
+	"T":"top", 
 	"0":"skipto 0", "1":"skipto 1", "2":"skipto 2", "3":"skipto 3", "4":"skipto 4", "5":"skipto 5", "6":"skipto 6", "7":"skipto 7", "8":"skipto 8", "9":"skipto 9",
+}
+selectCommandKeys={
+	"x":"toggle_select"
+}
+selectCommandKeys.update(sharedCommandKeys)
+commandKeys={
+	"F":"fetch", 
 	"g":"pager",
 	"c":"compose", "r":"reply",
 	"b":"boost", "f":"favourite",
@@ -401,19 +421,12 @@ commandKeys={
 	"/":"search",
 	"E":"expand_notes",
 	":":"cmd"}
-def execCommand(cmd):
+commandKeys.update(sharedCommandKeys)
+def execCommandShared(cmd):
 	global hlIdx, tlIdx, tl, currentTimeline, isCWOpen, seen_toots, tootbase, tb_dirty
 	tootsPerPage=int((ROWS-4)/4)
-	if cmd=="quit":
-		saveBase()
-		teardownCurses()
-		sys.exit()
-	elif cmd=="prev": hlIdx-=1
+	if cmd=="prev": hlIdx-=1
 	elif cmd=="next": hlIdx+=1
-	elif cmd=="prev_unread":
-		while hlIdx+tlIdx>0 and gTid(tl[hlIdx+tlIdx]) in seen_toots: hlIdx-=1
-	elif cmd=="next_unread":
-		while hlIdx+tlIdx<len(tl) and gTid(tl[hlIdx+tlIdx]) in seen_toots: hlIdx+=1
 	elif cmd=="next_page":
 		tlIdx+=tootsPerPage
 	elif cmd=="prev_page":
@@ -422,6 +435,22 @@ def execCommand(cmd):
 	elif cmd.find("skipto ")==0:
 		try: hlIdx=int(cmd.split()[1])
 		except: pass
+	else: return False
+	return True
+
+def execCommand(cmd):
+	global hlIdx, tlIdx, tl, currentTimeline, isCWOpen, seen_toots, tootbase, tb_dirty
+	tootsPerPage=int((ROWS-4)/4)
+	if execCommandShared(cmd):
+		pass # we have already handled it in the shared section
+	elif cmd=="quit":
+		saveBase()
+		teardownCurses()
+		sys.exit()
+	elif cmd=="prev_unread":
+		while hlIdx+tlIdx>0 and gTid(tl[hlIdx+tlIdx]) in seen_toots: hlIdx-=1
+	elif cmd=="next_unread":
+		while hlIdx+tlIdx<len(tl) and gTid(tl[hlIdx+tlIdx]) in seen_toots: hlIdx+=1
 	elif cmd=="fetch":
 		try: tl=getTimeline(verbose=True, since_id=gTid(tl[0]))+tl
 		except: tl=getTimeline()+tl
@@ -474,14 +503,21 @@ def execCommand(cmd):
 				if len(matches)==0:
 					statusMsg("No matches found for :"+msg)
 				else:
-					clean_matches=[ensureCachedAcct(x) for x in matches if not x["moved_to_account"]]
+					clean_matches=[ensureCachedAcct(x) for x in matches if not ("moved_to_account" in x and x["moved_to_account"])]
 					prettyMatches=[prettyProfile(x) for x in clean_matches]
-					selected=selectMatches(prettyMatches)
+					selected=selectMatches(prettyMatches, seen=[])
+					nameLookup={}
+					for item in prettyMatches:
+						nameLookup[item[0]]=item[1][0]+"  "+item[1][1]
 					if len(selected)>0:
-						for acct in selected:
-							try:
-								mastodon_follow(acct)
-							except Exception as e: statusMsg(str(e))
+						nameList="\n ".join([nameLookup[x] for x in selected])
+						msg=queryForInput("You are asking to follow these "+str(len(selected))+" accounts:\n "+nameList+"\nType YES to proceed").strip()
+						if msg=="YES":
+							for acct in selected:
+								statusMsg("Following "+nameLookup[acct]+"...", False)
+								try:
+									mastodon.account_follow(acct)
+								except Exception as e: statusMsg(str(e))
 	elif cmd=="mark_unread":
 		tid=gTid(tl[tlIdx+hlIdx])
 		if tid in seen_toots:
@@ -575,6 +611,29 @@ def execCommand(cmd):
 		tlIdx=tootsPerPage*int(position/tootsPerPage)
 	if(hlIdx+tlIdx>=len(tl)): hlIdx+=((hlIdx+tlIdx)-len(tl))
 
+def execCommandSelection(cmd):
+	global hlIdx, tlIdx, tl, selection
+	tootsPerPage=int((ROWS-4)/4)
+	if execCommandShared(cmd):
+		pass # we have already handled it in the shared section
+	elif cmd=="quit":
+		return True
+	elif cmd=="prev_unread":
+		while hlIdx+tlIdx>0 and tl[hlIdx+tlIdx][0] in seen_toots: hlIdx-=1
+	elif cmd=="next_unread":
+		while hlIdx+tlIdx<len(tl) and tl[hlIdx+tlIdx][0] in seen_toots: hlIdx+=1
+	elif cmd=="toggle_select":
+		item=tl[hlIdx+tlIdx]
+		if item[0] in selection:
+			selection.remove(item[0])
+		else:
+			selection.add(item[0])
+	if hlIdx+tlIdx<0:(hlIdx, tlIdx)=[0]*2
+	position=hlIdx+tlIdx
+	if(position>0):
+		hlIdx=position%tootsPerPage
+		tlIdx=tootsPerPage*int(position/tootsPerPage)
+	if(hlIdx+tlIdx>=len(tl)): hlIdx+=((hlIdx+tlIdx)-len(tl))
 
 ######################### MASTODON & CACHE HANDLING
 def getTimeline(which=None, **kw_args):
@@ -787,9 +846,10 @@ def loadBase():
 			saveBase()
 
 ######################## MAIN
-def mainloop():
-	global hlIdx, tl, commandKeys, tlIdx, ROWS, COLS
-	drawPanelContents(prettyToots(tl[tlIdx:]), hlIdx)
+def mainloop(selectMode=False):
+	global hlIdx, tl, commandKeys, tlIdx, ROWS, COLS, selection
+	if not selectMode:
+		drawPanelContents(prettyToots(tl[tlIdx:]), hlIdx)
 	key=scr.getch()
 	if key==curses.KEY_RESIZE:
 		ROWS, COLS = scr.getmaxyx()
@@ -798,7 +858,15 @@ def mainloop():
 	key=curses.keyname(key)
 	try: key=key.decode(code)
 	except: pass
-	if key in commandKeys.keys(): execCommand(commandKeys[key])
+
+	table=commandKeys
+	cmd=execCommand
+	if selectMode:
+		table=selectCommandKeys
+		cmd=execCommandSelection
+
+	if key in table.keys(): 
+		return cmd(table[key])
 	else: statusMsg("Key not handled: "+key)
 
 def main():
