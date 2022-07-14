@@ -554,19 +554,6 @@ def execCommand(cmd):
 		tlIdx=tootsPerPage*int(position/tootsPerPage)
 	if(hlIdx+tlIdx>=len(tl)): hlIdx+=((hlIdx+tlIdx)-len(tl))
 
-def expandThread(tid, verbose=False):
-	if verbose:
-		statusMsg("Expanding thread...", False)
-	ensureCached(tid)
-	while tootbase[tid]["in_reply_to_id"]!=None:
-		if verbose:
-			statusMsg("Expanding thread... (ID "+str(tid)+")", False)
-		tid=tootbase[tid]["in_reply_to_id"]
-		ensureCached(tid)
-	toots=[tootbase[tid]]
-	toots.extend(ensureCached(mastodon.status_context(tid)["descendants"], True))
-	saveBase()
-	return toots
 
 ######################### MASTODON & CACHE HANDLING
 def getTimeline(which=None, **kw_args):
@@ -588,6 +575,20 @@ def getTimeline(which=None, **kw_args):
 	tl.extend(ensureCached(tl2, verbose=True))
 	saveBase()
 	return tl
+
+def expandThread(tid, verbose=False):
+	if verbose:
+		statusMsg("Expanding thread...", False)
+	ensureCached(tid)
+	while tootbase[tid]["in_reply_to_id"]!=None:
+		if verbose:
+			statusMsg("Expanding thread... (ID "+str(tid)+")", False)
+		tid=tootbase[tid]["in_reply_to_id"]
+		ensureCached(tid)
+	toots=[tootbase[tid]]
+	toots.extend(ensureCached(mastodon.status_context(tid)["descendants"], True))
+	saveBase()
+	return toots
 
 def ensureCachedAcct(acct, verbose=False, ignoreErrors=True, msg=None, force=False):
 	myMsg="fetching account ID"
