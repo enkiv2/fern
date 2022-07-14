@@ -514,11 +514,11 @@ def getTimeline(which=None, **kw_args):
 	tl=[]
 	tl2=[]
 	if(which=="notifications"):
-		tl2=ensureCached([x["status"] for x in mastodon.notifications(mentions_only=myAccountId) if x["type"]=="mention"])
+		tl2=getMentions(mastodon.notifications())
 	else: tl2=mastodon.timeline(timeline=which, **kw_args)
-	tl.extend(ensureCached(tl2, verbose=True))
+	tl.extend(tl2)
 	saveBase()
-	return [x for x in tl if x!=None]
+	return ensureCached([x for x in tl if x!=None])
 
 def expandThreads(tids, verbose=False):
 	if verbose:
@@ -577,7 +577,7 @@ def importHistory(src="all", verbose=False):
 		return []
 	toots=allPages(page, True, "Getting "+src+"...")
 	if src in ["notifications", "mentions"]:
-		toots=ensureCached([x["status"] for x in toots if x["type"]=="mention"])
+		toots=ensureCached(getMentions(toots))
 	return expandThreads(list(map(lambda x: gTid(x), toots)), True)
 
 def allPages(page, verbose=False, msg=None):
@@ -596,6 +596,8 @@ def allPages(page, verbose=False, msg=None):
 		if pageNum>1: return ret
 	return ret
 		
+def getMentions(notifications):
+	return [x["status"] for x in notifications if x["type"]=="mentions"]
 
 def ensureCachedAcct(acct, verbose=False, ignoreErrors=True, msg=None, force=False):
 	myMsg="fetching account ID"
