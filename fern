@@ -285,6 +285,11 @@ def drawPanelContents(toots, selectedIdx, skipSeen=False):
 	i=0
 	for toot in toots:
 		if(i>(ROWS-3)/4): continue
+		if toot==None: 
+			drawMsgPanel(i, "", "", "Content unavailable", "", True)
+			if i==selectedIdx:
+				selectedIdx+=1
+			next
 		if "reblog" in toot and toot["reblog"] and type(toot["reblog"])==type(toot): toot=toot["reblog"]
 		if "muted" in toot or not "id" in toot: next
 		if not toot["id"] in tootbase: tootbase[toot["id"]]=copy.deepcopy(toot)
@@ -485,14 +490,11 @@ def execCommand(cmd):
 		page=1
 		while statuses != None:
 			try:
+				ensureCached(statuses, True)
 				for status in statuses:
 					try:
 						tid=status["id"]
-						if not tid in tootbase:
-							statusMsg("Fetching "+tid, False)
-							tootbase[tid]=copy.deepcopy(status)
-							tb_dirty[int(tid[-2:])]=True
-						tl=expandThread(tid)+tl
+						tl=ensureCached(expandThread(tid), True)+tl
 					except Exception as e: statusMsg(str(e), False)
 				drawPanelContents(tl[tlIdx:], hlIdx)
 				page+=1
@@ -559,14 +561,9 @@ def expandThread(tid):
 	while tootbase[tid]["in_reply_to_id"]!=None:
 		statusMsg("Expanding thread... (ID "+str(tid)+")", False)
 		tid=tootbase[tid]["in_reply_to_id"]
-		if not tid in tootbase:
-			tootbase[tid]=copy.deepcopy(mastodon.status(tid))
-			tb_dirty[int(tid[-2:])]=True
+		ensureCached(tid)
 	toots=[tootbase[tid]]
-	for item in mastodon.status_context(tid)["descendants"]:
-		statusMsg("Expanding thread... (ID "+str(item["id"])+")", False)
-		if not item["id"] in tootbase: tootbase[item["id"]]=copy.deepcopy(item)
-		toots.append(tootbase[item["id"]])
+	toots.extend(ensureCached(mastodon.status_context(tid)["descendants"], True))
 	saveBase()
 	return toots
 
@@ -629,15 +626,24 @@ def getTimeline(which=None, **kw_args):
 	saveBase()
 	return tl
 
-def ensureCached(toot, verbose=False):
+def ensureCached(toot, verbose=False, ignoreErrors=True):
 	global tootbase, tb_dirty
 	if type(toot)==list: # list of TIDs or toots
 		return list(map(toot, lambda x: ensureCached(x, verbose)))
 	elif type(toot)==str: # TID
-		if not tid in tootbase:
+		if not toot in tootbase:
 			if verbose:
-				statusMsg("Fetching "+tid, False)
-			return ensureCached(mastodon.status(tid), verbose)
+				statusMsg("Fetching "+toot, False)
+			try:
+				status=mastodon.status(toot)
+				return ensureCached(status, verbose)
+			except Exception as e:
+				if verbose:
+					statusMsg("Error fetching "+toot+": "+str(e), ignoreErrors)
+				elif ignoreErrors:
+					return None
+				else:
+					raise e
 	else:
 		tid=toot["id"]
 		if not tid in tootbase:
